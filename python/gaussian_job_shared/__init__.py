@@ -1,6 +1,6 @@
-from .gaussian_job_shared import *
+from gaussian_job_shared import _core
 
-
-__doc__ = gaussian_job_shared.__doc__
-if hasattr(gaussian_job_shared, "__all__"):
-    __all__ = gaussian_job_shared.__all__
+if hasattr(_core, "__doc__"):
+    __doc__ = _core.__doc__
+if hasattr(_core, "__all__"):
+    __all__ = _core.__all__
