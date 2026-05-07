@@ -36,6 +36,7 @@ tokio = { version = "1.0", features = ["macros", "process", "rt-multi-thread"] }
 chrono = { version = "0.4", features = ["serde"] }
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
+toml = "0.9"
 
 # UUID and datetime
 uuid = { version = "1.23", features = ["serde", "v4", "v7"] }
