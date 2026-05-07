@@ -1,9 +1,9 @@
 use pyo3::{PyErr, exceptions::PyValueError};
 
-use crate::error::StrictSchemaError;
+use crate::error::SchemaParseError;
 
-impl From<StrictSchemaError> for PyErr {
-    fn from(value: StrictSchemaError) -> Self {
+impl From<SchemaParseError> for PyErr {
+    fn from(value: SchemaParseError) -> Self {
         PyValueError::new_err(value.to_string())
     }
 }

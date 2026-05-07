@@ -23,38 +23,23 @@
 # its absolute path stable on both sides.
 
 # ---------------------------------------------------------------------------
-# [slurm] — SLURM scheduler directives for the **g16 batch**. Emitted as
+# [slurm_default] — SLURM scheduler directives for the **g16 batch**. Emitted as
 # `#SBATCH ...` lines at the top of `batch_g16.bash`. Also the fallback
 # source for the post batch (see [slurm.post] below).
 # ---------------------------------------------------------------------------
-[slurm]
+[slurm_default]
 partition   = "gr10641a"
 job_name    = "GAUSSIAN"
-time_limit  = "48:00:00"
 log_stdout  = "/LARGE0/gr10641/.cache/slurm/logs/%x.%j.out"
 log_stderr  = "/LARGE0/gr10641/.cache/slurm/logs/%x.%j.err"
 mail_user   = "user@example.com"
 mail_types  = ["BEGIN", "END", "FAIL"]
 
-[slurm.resource_spec]
+[slurm_default.resource_spec]
 p = 1      # processes
 t = 56     # threads
 c = 56     # cores
 m = "56G"  # memory
-
-# ---------------------------------------------------------------------------
-# [slurm.post] — OPTIONAL. Per-field overrides for the post-processing batch.
-# Omit to inherit [slurm] verbatim. Per-field fallback per the α design.
-# ---------------------------------------------------------------------------
-[slurm.post]
-time_limit = "1:00:00"
-job_name   = "GAUSSIAN_post"
-
-[slurm.post.resource_spec]
-p = 1
-t = 1
-c = 4
-m = "8G"
 
 # ---------------------------------------------------------------------------
 # [env] — Path roots consumed by D's `PathResolver`. Layout per
