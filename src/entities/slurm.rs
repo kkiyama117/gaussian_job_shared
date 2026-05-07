@@ -1,6 +1,51 @@
-/// Entities that represents slurm Job and JobConfig
-/// For detail, see [Kyoto Univ doc](https://web.kudpc.kyoto-u.ac.jp/manual/ja/run/batch#slurm) and [Official SLURM page](https://slurm.schedmd.com/sbatch.html)
-use super::*;
+//! Entities that represents slurm Job and JobConfig
+//! For detail, see [Kyoto Univ doc](https://web.kudpc.kyoto-u.ac.jp/manual/ja/run/batch#slurm) and [Official SLURM page](https://slurm.schedmd.com/sbatch.html)
+
+pub mod array_spec;
+
+pub mod dependency;
+
+pub mod resource_spec;
+
+use std::path::PathBuf;
+
+use chrono::TimeDelta;
+use itertools::Itertools;
+use serde::{Deserialize, Serialize};
+
+use crate::error::SchemaParseError;
+
+// `SlurmArraySpec` and `ArrayIndex` live in their own file so the parsing
+// and serde plumbing can be reasoned about in isolation. They are
+// re-exported here so existing call sites referencing
+// `crate::entities::slurm::SlurmArraySpec` keep working.
+pub use array_spec::{ArrayIndex, SlurmArraySpec};
+
+// `SlurmDependency` and friends live in their own file (see
+// [`crate::entities::dependency`]) so the `--dependency` parsing and serde
+// plumbing can be reasoned about in isolation. Re-exported here so existing
+// references such as `crate::entities::slurm::SlurmDependency` keep working.
+//
+//   #SBATCH -d afterok:200
+//
+// https://slurm.schedmd.com/sbatch.html
+// https://web.kudpc.kyoto-u.ac.jp/manual/ja/run/tips#dependency
+pub use dependency::{
+    DependencyClause, DependencyJobRef, DependencyJoin, DependencyType, SlurmDependency,
+};
+
+// `ResourceSpec` and friends live in their own file (see
+// [`crate::entities::resource_spec`]) so the colon-separated `--rsc`
+// parsing and serde plumbing can be reasoned about in isolation.
+// Re-exported here so existing references such as
+// `crate::entities::slurm::ResourceSpec` keep working.
+//
+//   #SBATCH --rsc p=1:t=56:c=56:m=56G   (CPU)
+//   #SBATCH --rsc g=2                    (GPU)
+//
+// https://web.kudpc.kyoto-u.ac.jp/manual/ja/run/batch#slurm
+// https://slurm.schedmd.com/sbatch.html
+pub use resource_spec::{Memory, MemoryUnit, ResourceSpec, ResourceSpecCPU, ResourceSpecGPU};
 
 // Each field of Slurm job entity.
 pub type JobPartition = String;
@@ -49,25 +94,6 @@ impl TryFrom<JobTimeLimit> for TimeDelta {
 
 /// TODO: implement Custom struct
 pub type JobRSC = String;
-
-// `SlurmArraySpec` and `ArrayIndex` live in their own file so the parsing
-// and serde plumbing can be reasoned about in isolation. They are
-// re-exported here so existing call sites referencing
-// `crate::entities::slurm::SlurmArraySpec` keep working.
-pub use crate::entities::array_spec::{ArrayIndex, SlurmArraySpec};
-
-// `SlurmDependency` and friends live in their own file (see
-// [`crate::entities::dependency`]) so the `--dependency` parsing and serde
-// plumbing can be reasoned about in isolation. Re-exported here so existing
-// references such as `crate::entities::slurm::SlurmDependency` keep working.
-//
-//   #SBATCH -d afterok:200
-//
-// https://slurm.schedmd.com/sbatch.html
-// https://web.kudpc.kyoto-u.ac.jp/manual/ja/run/tips#dependency
-pub use crate::entities::dependency::{
-    DependencyClause, DependencyJobRef, DependencyJoin, DependencyType, SlurmDependency,
-};
 
 pub type MailAddress = String;
 
@@ -157,18 +183,3 @@ pub struct SlurmJobConfig {
     #[serde(default)]
     pub resource_spec: Option<ResourceSpec>,
 }
-
-// `ResourceSpec` and friends live in their own file (see
-// [`crate::entities::resource_spec`]) so the colon-separated `--rsc`
-// parsing and serde plumbing can be reasoned about in isolation.
-// Re-exported here so existing references such as
-// `crate::entities::slurm::ResourceSpec` keep working.
-//
-//   #SBATCH --rsc p=1:t=56:c=56:m=56G   (CPU)
-//   #SBATCH --rsc g=2                    (GPU)
-//
-// https://web.kudpc.kyoto-u.ac.jp/manual/ja/run/batch#slurm
-// https://slurm.schedmd.com/sbatch.html
-pub use crate::entities::resource_spec::{
-    Memory, MemoryUnit, ResourceSpec, ResourceSpecCPU, ResourceSpecGPU,
-};
