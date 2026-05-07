@@ -1,0 +1,79 @@
+# Annotated example `common.toml` for the GAUSSIAN experiment-manager pipeline.
+#
+# Pair this file with an `experiment.toml` (see `experiment.toml` next to it)
+# and feed both to `gaussian-pipeline`:
+#
+#   pixi run gaussian-pipeline experiment.toml --common common.toml
+#
+# Or render-only (no sbatch):
+#
+#   pixi run gaussian-pipeline experiment.toml \
+#       --common common.toml --no-submit \
+#       --output-dir /tmp/gaussian-smoke-batches
+#
+# Schema split (per docs/specs/2026-05-04-experiment-manager-alpha-D-design.md):
+#   * `common.toml` — cluster/account-level invariants (slurm, env, gaussian_cmd).
+#   * `experiment.toml` — per-experiment steps (program, calc_type, params, ...).
+#
+# Strict loader: any unknown top-level or nested key is rejected by D's
+# `read_common_toml`. No silent typos.
+#
+# This file is read multiple times in the normal flow (login node renderer +
+# every compute-node entry point invoked from inside the rendered bash); keep
+# its absolute path stable on both sides.
+
+# ---------------------------------------------------------------------------
+# [slurm] — SLURM scheduler directives for the **g16 batch**. Emitted as
+# `#SBATCH ...` lines at the top of `batch_g16.bash`. Also the fallback
+# source for the post batch (see [slurm.post] below).
+# ---------------------------------------------------------------------------
+[slurm]
+partition   = "gr10641a"
+job_name    = "GAUSSIAN"
+time_limit  = "48:00:00"
+log_stdout  = "/LARGE0/gr10641/.cache/slurm/logs/%x.%j.out"
+log_stderr  = "/LARGE0/gr10641/.cache/slurm/logs/%x.%j.err"
+mail_user   = "user@example.com"
+mail_types  = ["BEGIN", "END", "FAIL"]
+
+[slurm.resource_spec]
+p = 1      # processes
+t = 56     # threads
+c = 56     # cores
+m = "56G"  # memory
+
+# ---------------------------------------------------------------------------
+# [slurm.post] — OPTIONAL. Per-field overrides for the post-processing batch.
+# Omit to inherit [slurm] verbatim. Per-field fallback per the α design.
+# ---------------------------------------------------------------------------
+[slurm.post]
+time_limit = "1:00:00"
+job_name   = "GAUSSIAN_post"
+
+[slurm.post.resource_spec]
+p = 1
+t = 1
+c = 4
+m = "8G"
+
+# ---------------------------------------------------------------------------
+# [env] — Path roots consumed by D's `PathResolver`. Layout per
+# 2026-05-04 α design §7: `target_dir(uuid) = <env.root>/<uuid>/`.
+#
+# For real cluster runs use the lustre mount, e.g.
+#   root     = "/LARGE0/gr10641/calc_data/GAUSSIAN/"
+#   tmp_root = "/LARGE0/gr10641/.cache/scratch/gaussian/"
+#
+# The values below point at /tmp so this example is runnable as a local
+# `pixi run smoke` (renderer + bash -n), no cluster needed.
+# ---------------------------------------------------------------------------
+[env]
+root          = "/tmp/gaussian-smoke-root"   # parent of all <uuid>/ target dirs
+tmp_root      = "/tmp/gaussian-smoke-tmp"    # compute-node scratch parent
+task_basename = "main"                       # default basename for input/output files
+
+# ---------------------------------------------------------------------------
+# [gaussian_cmd] — the Gaussian binary invoked by B's `run-g16`.
+# ---------------------------------------------------------------------------
+[gaussian_cmd]
+command = "g16"
