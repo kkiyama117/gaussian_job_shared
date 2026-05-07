@@ -7,9 +7,10 @@ pub mod dependency;
 
 pub mod resource_spec;
 
+pub mod time_limit;
+
 use std::path::PathBuf;
 
-use chrono::TimeDelta;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
@@ -47,50 +48,20 @@ pub use dependency::{
 // https://slurm.schedmd.com/sbatch.html
 pub use resource_spec::{Memory, MemoryUnit, ResourceSpec, ResourceSpecCPU, ResourceSpecGPU};
 
+// `JobTimeLimit` lives in its own file (see [`crate::entities::slurm::time_limit`])
+// so the Slurm `--time` parsing and serde plumbing can be reasoned about in
+// isolation. Re-exported here so existing references such as
+// `crate::entities::slurm::JobTimeLimit` keep working.
+//
+//   #SBATCH --time 01:00:00      (HH:MM:SS)
+//   #SBATCH --time 3-12:00:00    (D-H:M:S)
+//
+// https://web.kudpc.kyoto-u.ac.jp/manual/ja/run/batch#slurm
+// https://slurm.schedmd.com/sbatch.html
+pub use time_limit::JobTimeLimit;
+
 // Each field of Slurm job entity.
 pub type JobPartition = String;
-
-/// Custom String type of Job Time Limit
-/// We can convert it from and (try_)into [`chrono::TimeDelta`]
-/// -t HOUR:MINUTES:SECONDS,
-#[derive(Debug, Clone)]
-pub struct JobTimeLimit(String);
-
-impl From<TimeDelta> for JobTimeLimit {
-    fn from(value: TimeDelta) -> Self {
-        let total_seconds = value.num_seconds();
-        let hours = total_seconds / 3600;
-        let minutes = (total_seconds % 3600) / 60;
-        let seconds = total_seconds % 60;
-        let inner = format!("{:02}:{:02}:{:02}", hours, minutes, seconds);
-        Self(inner)
-    }
-}
-
-impl std::fmt::Display for JobTimeLimit {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl TryFrom<JobTimeLimit> for TimeDelta {
-    type Error = SchemaParseError;
-
-    fn try_from(value: JobTimeLimit) -> Result<Self, Self::Error> {
-        let inner = value.0;
-        let sp: Vec<_> = inner
-            .split(':')
-            .map(|i| i.parse::<i8>())
-            .try_collect()
-            .map_err(|_| SchemaParseError::ParseError {
-                key: "-t".to_string(),
-                value: inner.to_string(),
-            })?;
-        Ok(TimeDelta::hours(sp[0].into())
-            + TimeDelta::minutes(sp[1].into())
-            + TimeDelta::seconds(sp[2].into()))
-    }
-}
 
 /// TODO: implement Custom struct
 pub type JobRSC = String;
@@ -144,10 +115,12 @@ pub struct SlurmJobConfig {
     /// queue of job. It is required thing
     pub partition: JobPartition,
 
-    /// Wall-clock limit as `"HH:MM:SS"`. Convert to
-    /// [`chrono::TimeDelta`] via [`super::slurm_config_entities::JobTimeLimit`].
+    /// Wall-clock limit (`--time`). Accepts any of Slurm's six surface forms
+    /// (`M`, `M:S`, `H:M:S`, `D-H`, `D-H:M`, `D-H:M:S`); always re-emitted as
+    /// canonical `HH:MM:SS`. See [`JobTimeLimit`] for parsing and the
+    /// [`TimeDelta`](chrono::TimeDelta) interop.
     #[serde(default)]
-    pub time_limit: Option<String>,
+    pub time_limit: Option<JobTimeLimit>,
 
     /// path of stdout
     #[serde(default)]
