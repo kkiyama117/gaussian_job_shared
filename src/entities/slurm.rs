@@ -56,11 +56,18 @@ pub type JobRSC = String;
 // `crate::entities::slurm::SlurmArraySpec` keep working.
 pub use crate::entities::array_spec::{ArrayIndex, SlurmArraySpec};
 
-// TODO: impl TryFrom<String>;
-///  SBATCH  -d afterok:200
-/// https://slurm.schedmd.com/sbatch.html
-/// https://web.kudpc.kyoto-u.ac.jp/manual/ja/run/tips#dependency
-pub type SlurmDependency = String;
+// `SlurmDependency` and friends live in their own file (see
+// [`crate::entities::dependency`]) so the `--dependency` parsing and serde
+// plumbing can be reasoned about in isolation. Re-exported here so existing
+// references such as `crate::entities::slurm::SlurmDependency` keep working.
+//
+//   #SBATCH -d afterok:200
+//
+// https://slurm.schedmd.com/sbatch.html
+// https://web.kudpc.kyoto-u.ac.jp/manual/ja/run/tips#dependency
+pub use crate::entities::dependency::{
+    DependencyClause, DependencyJobRef, DependencyJoin, DependencyType, SlurmDependency,
+};
 
 pub type MailAddress = String;
 
@@ -151,28 +158,17 @@ pub struct SlurmJobConfig {
     pub resource_spec: Option<ResourceSpec>,
 }
 
-/// resource_spec
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub enum ResourceSpec {
-    /// using cpu  — `p` procs, `t` threads, `c` cores, `m` memory,
-    CPU(ResourceSpecCPU),
-    /// using gpu  — `g` gpus
-    GPU(ResourceSpecGPU),
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct ResourceSpecCPU {
-    pub p: u32,
-    pub t: u32,
-    pub c: u32,
-    /// Memory string such as `"56G"`.
-    pub m: String,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct ResourceSpecGPU {
-    #[serde(default)]
-    pub g: Option<u32>,
-}
+// `ResourceSpec` and friends live in their own file (see
+// [`crate::entities::resource_spec`]) so the colon-separated `--rsc`
+// parsing and serde plumbing can be reasoned about in isolation.
+// Re-exported here so existing references such as
+// `crate::entities::slurm::ResourceSpec` keep working.
+//
+//   #SBATCH --rsc p=1:t=56:c=56:m=56G   (CPU)
+//   #SBATCH --rsc g=2                    (GPU)
+//
+// https://web.kudpc.kyoto-u.ac.jp/manual/ja/run/batch#slurm
+// https://slurm.schedmd.com/sbatch.html
+pub use crate::entities::resource_spec::{
+    Memory, MemoryUnit, ResourceSpec, ResourceSpecCPU, ResourceSpecGPU,
+};

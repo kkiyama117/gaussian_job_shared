@@ -28,18 +28,16 @@
 # source for the post batch (see [slurm.post] below).
 # ---------------------------------------------------------------------------
 [slurm_default]
-partition   = "gr10641a"
-job_name    = "GAUSSIAN"
-log_stdout  = "/LARGE0/gr10641/.cache/slurm/logs/%x.%j.out"
-log_stderr  = "/LARGE0/gr10641/.cache/slurm/logs/%x.%j.err"
-mail_user   = "user@example.com"
-mail_types  = ["BEGIN", "END", "FAIL"]
-
-[slurm_default.resource_spec]
-p = 1      # processes
-t = 56     # threads
-c = 56     # cores
-m = "56G"  # memory
+partition     = "gr10641a"
+job_name      = "GAUSSIAN"
+log_stdout    = "/LARGE0/gr10641/.cache/slurm/logs/%x.%j.out"
+log_stderr    = "/LARGE0/gr10641/.cache/slurm/logs/%x.%j.err"
+mail_user     = "user@example.com"
+mail_types    = ["BEGIN", "END", "FAIL"]
+# Slurm `--rsc`-style resource list (KUDPC convention).
+#   CPU job: "p=<procs>:t=<threads>:c=<cores>:m=<memory>"
+#   GPU job: "g=<gpus>"
+resource_spec = "p=1:t=56:c=56:m=56G"
 
 # ---------------------------------------------------------------------------
 # [env] — Path roots consumed by D's `PathResolver`. Layout per

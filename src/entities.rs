@@ -8,4 +8,8 @@ use crate::error::SchemaParseError;
 
 pub mod array_spec;
 
+pub mod dependency;
+
+pub mod resource_spec;
+
 pub mod slurm;
