@@ -73,3 +73,4 @@ docs/_build/
 
 #remove lock because of pixi conflict
 uv.lock
+.dmux/

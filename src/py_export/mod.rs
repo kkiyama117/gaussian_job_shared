@@ -1,5 +1,7 @@
 #![cfg(feature = "pyo3")]
 
+pub mod error;
+
 use pyo3::prelude::*;
 
 pyo3_stub_gen::define_stub_info_gatherer!(stub_info);

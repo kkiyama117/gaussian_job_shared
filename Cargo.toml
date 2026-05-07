@@ -26,6 +26,9 @@ log = "0.4"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 
+# utilities
+itertools = {version  = "0.14.0"}
+
 # Asynchronous runtime and utilities
 futures = "0.3"
 tokio = { version = "1.0", features = ["macros", "process", "rt-multi-thread"] }
