@@ -29,6 +29,30 @@ impl From<&str> for JobId {
     }
 }
 
+/// Program identifier a `JobSpec` runs (e.g. "g16", "formchk",
+/// "gaussview", program-specific analyzers).
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct Program(pub String);
+
+impl std::fmt::Display for Program {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl From<String> for Program {
+    fn from(s: String) -> Self {
+        Self(s)
+    }
+}
+
+impl From<&str> for Program {
+    fn from(s: &str) -> Self {
+        Self(s.to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -59,5 +83,21 @@ mod tests {
             keys,
             vec![JobId("g16".to_string()), JobId("post".to_string())]
         );
+    }
+
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    struct ProgramHolder {
+        program: Program,
+    }
+
+    #[test]
+    fn program_toml_roundtrip() {
+        let h = ProgramHolder {
+            program: Program("g16".to_string()),
+        };
+        let s = toml::to_string(&h).unwrap();
+        assert!(s.contains(r#"program = "g16""#), "actual TOML: {s}");
+        let back: ProgramHolder = toml::from_str(&s).unwrap();
+        assert_eq!(back, h);
     }
 }
