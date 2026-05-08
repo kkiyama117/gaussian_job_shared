@@ -9,7 +9,7 @@ use crate::entities::slurm::status as inner;
 #[gen_stub_pyclass_enum]
 #[pyclass(
     name = "JobLifecycleStatus",
-    module = "gaussian_job_shared._core",
+    module = "gaussian_job_shared._core.entities.slurm",
     from_py_object,
     eq,
     eq_int,
@@ -78,7 +78,7 @@ impl From<PyJobLifecycleStatus> for inner::JobLifecycleStatus {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "StatusEntry",
-    module = "gaussian_job_shared._core",
+    module = "gaussian_job_shared._core.entities.slurm",
     from_py_object,
     eq
 )]

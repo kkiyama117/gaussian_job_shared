@@ -17,7 +17,7 @@ use super::slurm::job::{PyJob, PyJobId};
 #[gen_stub_pyclass]
 #[pyclass(
     name = "CalcType",
-    module = "gaussian_job_shared._core",
+    module = "gaussian_job_shared._core.entities",
     from_py_object,
     eq,
     ord,
@@ -63,7 +63,11 @@ impl From<PyCalcType> for inner::CalcType {
 
 // ------------------------------------------------------------------ JobFlow
 #[gen_stub_pyclass]
-#[pyclass(name = "JobFlow", module = "gaussian_job_shared._core", from_py_object)]
+#[pyclass(
+    name = "JobFlow",
+    module = "gaussian_job_shared._core.entities",
+    from_py_object
+)]
 #[derive(Clone)]
 pub struct PyJobFlow(pub inner::JobFlow);
 

@@ -3,3 +3,28 @@
 
 pub mod job_flow;
 pub mod slurm;
+
+use pyo3::prelude::*;
+
+#[pymodule(name = "entities")]
+pub(crate) mod inner_module {
+    use super::*;
+
+    const PYTHON_MODULE_NAME: &str = "gaussian_job_shared._core.entities";
+
+    #[pymodule_export]
+    use super::slurm::inner_module;
+
+    #[pymodule_export]
+    use super::job_flow::{PyCalcType, PyJobFlow};
+
+    #[pymodule_init]
+    fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
+        let py = m.py();
+        py.import("sys")?
+            .getattr("modules")?
+            .set_item(PYTHON_MODULE_NAME, m)?;
+        log::debug!("{} Rust module initialized", PYTHON_MODULE_NAME);
+        Ok(())
+    }
+}

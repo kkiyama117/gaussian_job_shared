@@ -9,17 +9,16 @@ from datetime import datetime, timezone
 
 import pytest
 
-import gaussian_job_shared
-from gaussian_job_shared._core import (
+from gaussian_job_shared._core import sum_as_string
+from gaussian_job_shared._core.entities import CalcType, JobFlow
+from gaussian_job_shared._core.entities.slurm import (
     ArrayIndex,
-    CalcType,
     DependencyClause,
     DependencyJobRef,
     DependencyJoin,
     DependencyType,
     Job,
     JobEdge,
-    JobFlow,
     JobId,
     JobLifecycleStatus,
     JobSpec,
@@ -35,7 +34,6 @@ from gaussian_job_shared._core import (
     SlurmDependency,
     SlurmJobConfig,
     StatusEntry,
-    sum_as_string,
 )
 
 
@@ -45,8 +43,10 @@ def test_sum_as_string():
 
 
 def test_module_all_includes_new_types():
-    assert "JobFlow" in gaussian_job_shared.__all__
-    assert "DependencyType" in gaussian_job_shared.__all__
+    from gaussian_job_shared._core import entities
+
+    assert "JobFlow" in entities.__all__
+    assert "DependencyType" in entities.slurm.__all__
 
 
 # ------------------------------------------------------------------- newtypes

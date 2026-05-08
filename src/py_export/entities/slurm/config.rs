@@ -16,7 +16,7 @@ use super::time_limit::PyJobTimeLimit;
 #[gen_stub_pyclass_enum]
 #[pyclass(
     name = "MailType",
-    module = "gaussian_job_shared._core",
+    module = "gaussian_job_shared._core.entities.slurm",
     from_py_object,
     eq,
     eq_int,
@@ -79,7 +79,7 @@ impl From<PyMailType> for inner::MailType {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "MailTypeInput",
-    module = "gaussian_job_shared._core",
+    module = "gaussian_job_shared._core.entities.slurm",
     from_py_object,
     eq,
     hash,
@@ -144,7 +144,7 @@ impl From<PyMailTypeInput> for inner::MailTypeInput {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "SlurmJobConfig",
-    module = "gaussian_job_shared._core",
+    module = "gaussian_job_shared._core.entities.slurm",
     from_py_object
 )]
 #[derive(Clone)]

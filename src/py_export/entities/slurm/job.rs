@@ -13,7 +13,7 @@ use super::dependency::PyDependencyType;
 #[gen_stub_pyclass]
 #[pyclass(
     name = "JobId",
-    module = "gaussian_job_shared._core",
+    module = "gaussian_job_shared._core.entities.slurm",
     from_py_object,
     eq,
     ord,
@@ -62,7 +62,7 @@ impl From<PyJobId> for inner::JobId {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "Program",
-    module = "gaussian_job_shared._core",
+    module = "gaussian_job_shared._core.entities.slurm",
     from_py_object,
     eq,
     ord,
@@ -110,7 +110,7 @@ impl From<PyProgram> for inner::Program {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "JobEdge",
-    module = "gaussian_job_shared._core",
+    module = "gaussian_job_shared._core.entities.slurm",
     from_py_object,
     eq
 )]
@@ -170,7 +170,11 @@ impl From<PyJobEdge> for inner::JobEdge {
 
 // ----------------------------------------------------------------- JobSpec
 #[gen_stub_pyclass]
-#[pyclass(name = "JobSpec", module = "gaussian_job_shared._core", from_py_object)]
+#[pyclass(
+    name = "JobSpec",
+    module = "gaussian_job_shared._core.entities.slurm",
+    from_py_object
+)]
 #[derive(Clone)]
 pub struct PyJobSpec(pub inner::JobSpec);
 
@@ -239,7 +243,11 @@ impl From<PyJobSpec> for inner::JobSpec {
 
 // --------------------------------------------------------------------- Job
 #[gen_stub_pyclass]
-#[pyclass(name = "Job", module = "gaussian_job_shared._core", from_py_object)]
+#[pyclass(
+    name = "Job",
+    module = "gaussian_job_shared._core.entities.slurm",
+    from_py_object
+)]
 #[derive(Clone)]
 pub struct PyJob(pub inner::Job);
 

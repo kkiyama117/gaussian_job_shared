@@ -12,7 +12,7 @@ use crate::entities::slurm as inner;
 #[gen_stub_pyclass]
 #[pyclass(
     name = "ArrayIndex",
-    module = "gaussian_job_shared._core",
+    module = "gaussian_job_shared._core.entities.slurm",
     from_py_object,
     eq,
     frozen
@@ -116,7 +116,7 @@ impl From<PyArrayIndex> for inner::ArrayIndex {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "SlurmArraySpec",
-    module = "gaussian_job_shared._core",
+    module = "gaussian_job_shared._core.entities.slurm",
     from_py_object,
     eq
 )]
