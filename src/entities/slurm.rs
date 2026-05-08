@@ -1,6 +1,12 @@
 //! Entities that represents slurm Job and JobConfig
 //! For detail, see [Kyoto Univ doc](https://web.kudpc.kyoto-u.ac.jp/manual/ja/run/batch#slurm) and [Official SLURM page](https://slurm.schedmd.com/sbatch.html)
 
+pub mod job;
+pub use job::{Job, JobEdge, JobId, JobSpec, Program};
+
+pub mod status;
+pub use status::{JobLifecycleStatus, StatusEntry};
+
 pub mod array_spec;
 
 pub mod dependency;
