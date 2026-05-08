@@ -16,7 +16,7 @@ use crate::error::SchemaParseError;
 ///
 /// Slurm documents the suffixes `[K|M|G|T]`. A unit-less integer is treated
 /// as megabytes (the Slurm default for `--mem`). The original suffix is
-/// preserved on parse so [`Display`] can emit the same shape the user
+/// preserved on parse so [`std::fmt::Display`] can emit the same shape the user
 /// supplied (modulo the `Mega` default, which is rendered as `M`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MemoryUnit {
@@ -113,7 +113,7 @@ impl std::str::FromStr for Memory {
 ///
 /// The presence of a `g=` token selects the GPU flavour; otherwise the spec
 /// is parsed as CPU and all four of `p`, `t`, `c`, `m` are required. Token
-/// order is irrelevant to the parser, but [`Display`] always emits the
+/// order is irrelevant to the parser, but [`std::fmt::Display`] always emits the
 /// canonical order shown above.
 ///
 /// Examples (verbatim from the KUDPC manual):
