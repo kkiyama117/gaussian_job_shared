@@ -27,8 +27,8 @@ The data model must:
 
 | Concern                                    | Owned by   |
 |--------------------------------------------|------------|
-| Identity / lineage / experiment grouping   | `JobFlow`  |
-| Tags                                       | `JobFlow`  |
+| Identity / experiment grouping             | `JobFlow.uuid` / `JobFlow.experiment_id` |
+| Tags                                       | `JobFlow.tags` |
 | Working directory (data root for the flow) | `JobFlow.work_dir` |
 | Set of `Job`s in the flow                  | `JobFlow.jobs: Vec<Job>` |
 | Calculation type (overall flow purpose)    | `JobFlow.calc_type` |
@@ -38,6 +38,7 @@ The data model must:
 | Slurm submission directives                | `JobSpec.config` |
 | Bash script body                           | `JobSpec.body` |
 | Runtime state (slurm_jobid, status, ...)   | **`Job` (future fields)** — shape ready, fields out of scope here |
+| Cross-flow lineage (`JobFlow → JobFlow`)   | **Out of scope** — see §11 (no `parent_uuids` field in this PR) |
 | Runtime mapping `JobId → SlurmJobId`       | TaskManager (out of scope here) |
 | Status transitions / summary file          | TaskManager (out of scope here) |
 
@@ -58,13 +59,14 @@ The following are explicitly **out of scope** of this PR:
 - Program-specific params and compounds — owned by `gaussian16` module
 - pyo3 bindings for the new types
 - TOML serialization round-trip helpers (`read_metadata` / `write_metadata` equivalents)
-- Cross-flow DAG operations (sweep expansion, parent resolution) — Python δ-layer concerns
+- **Cross-flow lineage and DAG operations** (`parent_uuids`, sweep expansion, cross-flow parent resolution). No `parent_uuids` field is added to `JobFlow` in this PR; if cross-flow dependencies are needed later, the choice between an external graph store, a separate `JobFlowEdge` type, or revisiting `parent_uuids` is deferred to that follow-up.
 
 ## 3. Reference: Mapping to `gaussian-experiment-manager` (Python δ layer)
 
 | Python (`gaussian-experiment-manager` + `gaussian-job-shared`) | This Rust design                                         |
 |----------------------------------------------------------------|----------------------------------------------------------|
-| `CalcBlock` (uuid, program, calc_type, parent_uuids, ...)      | Split: identity/lineage/calc_type → `JobFlow`; `program` → `JobSpec` |
+| `CalcBlock` (uuid, program, calc_type, ...)                    | Split: identity/calc_type → `JobFlow`; `program` → `JobSpec` |
+| `CalcBlock.parent_uuids` (cross-flow lineage)                  | **Out of scope** — cross-flow DAG handled later (see §11) |
 | `Compounds`                                                    | Out of scope — `gaussian16::Compounds` (program-side)    |
 | `CalcParams` / `GaussianParams`                                | Out of scope — `gaussian16::JobParams` (program-side)    |
 | `CalcBlock.slurm_jobid` / `post_jobid`                         | Out of scope — runtime fields will land on `Job` (the large tier) in TaskManager PR |
@@ -82,8 +84,8 @@ The following are explicitly **out of scope** of this PR:
 [ JobFlow ]                  ── 1 logical job-flow unit (uuid + DAG)
    ├── identity:
    │     uuid / calc_type / created_at
-   ├── lineage (cross-flow):
-   │     parent_uuids / experiment_id
+   ├── grouping:
+   │     experiment_id                    ── optional, for cross-flow grouping only
    ├── work_dir: PathBuf                  ── data root for this flow
    ├── tags:    BTreeMap<String, String>
    └── jobs:    Vec<Job>                  ── DAG (each Job = spec + flow-scoped state)
@@ -142,11 +144,8 @@ pub struct JobFlow {
     /// Creation timestamp (UTC).
     pub created_at: DateTime<Utc>,
 
-    /// Cross-flow parents — UUIDs of other JobFlows whose results
-    /// this flow consumes. Empty for root flows.
-    pub parent_uuids: Vec<Uuid>,
-
-    /// Optional experiment grouping ID.
+    /// Optional experiment grouping ID. Multiple flows that belong to
+    /// the same logical experiment share this value; otherwise `None`.
     pub experiment_id: Option<ExperimentId>,
 
     /// Working directory for this flow. TaskManager creates per-Job
@@ -248,7 +247,7 @@ pub struct Program(pub String);
 - **Why `JobEdge` carries no `to`:** `to` is implicit — it is the enclosing `Job.id`. This eliminates a field and an integrity check.
 - **`Program`** lives in this module (alongside `Job` / `JobSpec`) because it is a per-spec concern. `Display` and `From<String> / FromStr` are implemented.
 - **No `delay_minutes`:** the existing `DependencyJobRef` supports it for `After`-typed clauses; this is left out of the intra-flow edge for simplicity and added later if needed.
-- **Relationship to `SlurmJobConfig.dependency`:** `JobEdge` is the *logical* intra-flow dependency. At submission time, TaskManager looks up each parent's runtime `SlurmJobId`, builds a `SlurmDependency` clause, and merges it into the child's `spec.config.dependency` before calling `sbatch`. Cross-flow dependencies (against a different JobFlow's last `JobId`) and intra-flow dependencies coexist on the same child.
+- **Relationship to `SlurmJobConfig.dependency`:** `JobEdge` is the *logical* intra-flow dependency. At submission time, TaskManager looks up each parent's runtime `SlurmJobId`, builds a `SlurmDependency` clause, and merges it into the child's `spec.config.dependency` before calling `sbatch`. Cross-flow dependencies are not modelled in `JobFlow` (see §11) — if a child needs to wait on another flow's job, the user pre-populates that as a raw `SlurmDependency` clause in `spec.config.dependency`; intra-flow `JobEdge`s and any pre-set raw clauses simply concatenate.
 - **`body` as plain `String`:** most env-setup boilerplate (shebang, `set -euo pipefail`, conda cleanup, module restore, conda activate) is a fixed string template applied by TaskManager. The program-specific main command is owned by the program-specific module (e.g., `gaussian16`).
 
 ### 5.3 `JobLifecycleStatus` / `StatusEntry` (new — `src/entities/slurm/status.rs`)
@@ -325,7 +324,6 @@ Validation is **not** enforced by these types in this PR. The following invarian
 - For every `JobEdge.from` in any `Job.parents`, there exists a `Job` in the same flow whose `id` equals it
 - `JobEdge.from != enclosing Job.id` (no self-loop)
 - The intra-flow graph (`Job`s × incoming edges) is acyclic
-- `parent_uuids` does not contain `uuid` (no self-reference in cross-flow)
 - `JobId` / `Program` / `CalcType` non-empty after trim, and `JobId` matches a usable filename charset (letters, digits, `-`, `_`)
 - `JobFlow.work_dir` non-empty (path validation — existence, writability — is TaskManager's concern at submission time)
 
@@ -336,7 +334,7 @@ The types are pure data — they accept any well-typed value and validate at the
 Unit tests (in each new file) cover:
 
 - `JobFlow` round-trip TOML serialize/deserialize with each field varying (including `work_dir`)
-- `JobFlow` with empty `jobs`, multiple `jobs`, multiple `parent_uuids`
+- `JobFlow` with empty `jobs`, multiple `jobs`, with and without `experiment_id`
 - `Job` flatten behaviour: a `[[jobs]]` block in TOML has `id`, `program`, `body`, `parents`, and `[jobs.config]` at the same level (no `[jobs.spec]` nesting)
 - `Job` with `parents = []` (root), one parent (linear chain), and `parents.len() > 1` (DAG join)
 - `JobSpec` round-trip TOML in isolation (verifies it can be serialized standalone — important for the small/large split, since `JobSpec` should be reusable across flows)
@@ -356,6 +354,7 @@ No integration tests for submit / tick — out of scope.
 ## 11. Open Questions / Future Work
 
 - **DAG validation**: when adding TaskManager, define a `JobFlowError::{DuplicateJobId, UnknownParent, CycleDetected, SelfLoop}` and a graph validator.
+- **Cross-flow lineage**: deliberately omitted in this PR — no `parent_uuids: Vec<Uuid>` on `JobFlow`. Open question for a future iteration: should cross-flow dependencies be modelled (a) as a separate `JobFlowEdge { from: Uuid, to: Uuid, kind }` graph stored alongside, (b) by reintroducing `parent_uuids`, or (c) by an external graph store (e.g., Python δ-layer)? Decide once a real cross-flow consumer exists.
 - **Runtime fields on `Job`**: TaskManager PR adds `slurm_jobid: Option<SlurmJobId>`, `status_history: Vec<StatusEntry>`, `started_at` / `finished_at`. The two-tier split was chosen specifically to make this extension non-breaking: existing `JobSpec` consumers stay untouched.
 - **`SlurmJobId` newtype + summary file**: shape will be `pub struct SlurmJobId(pub String);` plus a sibling `<work_dir>/summary.toml` keyed by `JobId` (per step 6 of §4.1).
 - **Submission helpers on `JobFlow`**: `JobFlow::find(&JobId)`, `JobFlow::roots()`, `JobFlow::topological()` — likely live in TaskManager rather than directly on `JobFlow` to keep the data type pure.
