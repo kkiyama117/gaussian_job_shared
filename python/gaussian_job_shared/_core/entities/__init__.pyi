@@ -7,7 +7,6 @@ import os
 import pathlib
 import typing
 from . import slurm
-
 __all__ = [
     "CalcType",
     "JobFlow",
@@ -59,15 +58,7 @@ class JobFlow:
         """
     @jobs.setter
     def jobs(self, value: typing.Mapping[builtins.str, slurm.Job]) -> None: ...
-    def __new__(
-        cls,
-        uuid: builtins.str,
-        calc_type: CalcType,
-        created_at: datetime.datetime,
-        work_dir: builtins.str | os.PathLike | pathlib.Path,
-        tags: typing.Mapping[builtins.str, builtins.str] = {},
-        jobs: typing.Mapping[builtins.str, slurm.Job] = {},
-    ) -> JobFlow:
+    def __new__(cls, uuid: builtins.str, calc_type: CalcType, created_at: datetime.datetime, work_dir: builtins.str | os.PathLike | pathlib.Path, tags: typing.Mapping[builtins.str, builtins.str] = {}, jobs: typing.Mapping[builtins.str, slurm.Job] = {}) -> JobFlow:
         r"""
         Build a `JobFlow`. `uuid` accepts the canonical hyphenated string form
         (e.g. `"01997cdc-…"`). To generate a fresh UUID v7, call
@@ -87,3 +78,4 @@ class JobFlow:
         Convenience: get a job by id (returns `None` if missing).
         """
     def __repr__(self) -> builtins.str: ...
+

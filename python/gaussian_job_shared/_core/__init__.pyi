@@ -3,7 +3,6 @@
 
 import builtins
 from . import entities
-
 __all__ = [
     "entities",
     "sum_as_string",
@@ -13,3 +12,4 @@ def sum_as_string(a: builtins.int, b: builtins.int) -> builtins.str:
     r"""
     Formats the sum of two numbers as string.
     """
+
