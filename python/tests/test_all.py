@@ -36,6 +36,8 @@ from gaussian_job_shared._core.entities.workflow import (
     JobLifecycleStatus,
     JobSpec,
     Program,
+    QueuedKind,
+    RunningKind,
     StatusEntry,
 )
 
@@ -83,8 +85,8 @@ def test_dependency_type_variants_and_str():
 
 
 def test_job_lifecycle_status_str():
-    assert str(JobLifecycleStatus.Queued) == "queued"
-    assert str(JobLifecycleStatus.Done) == "done"
+    assert str(JobLifecycleStatus.queued(QueuedKind.Pending)) == "pending"
+    assert str(JobLifecycleStatus.done()) == "completed"
 
 
 def test_mail_type_str():
@@ -214,8 +216,9 @@ def test_mail_type_input_from_list_and_parse():
 
 def test_status_entry_round_trip():
     ts = datetime(2026, 5, 8, 12, 0, 0, tzinfo=timezone.utc)
-    e = StatusEntry(JobLifecycleStatus.Running, ts)
-    assert e.status == JobLifecycleStatus.Running
+    running = JobLifecycleStatus.running(RunningKind.Running)
+    e = StatusEntry(running, ts)
+    assert e.status == running
     assert e.transitioned_at == ts
 
 
