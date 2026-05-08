@@ -1,8 +1,10 @@
 //! Python-facing wrappers for `crate::entities::workflow::*` (the workflow
 //! tier — DAG-shaped flow that *uses* SLURM types but is not SLURM-internal).
+//! Job lifecycle status (`PyJobStatus`, `PyJobState`, `PyJobReason`) lives
+//! under `crate::py_export::entities::slurm::status` since it mirrors
+//! SLURM's own `(state, reason)` pair.
 
 pub mod job;
-pub mod status;
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -169,11 +171,6 @@ pub(crate) mod inner_module {
 
     #[pymodule_export]
     use super::job::{PyCalcType, PyJob, PyJobEdge, PyJobId, PyJobSpec, PyProgram};
-
-    #[pymodule_export]
-    use super::status::{
-        PyFailureKind, PyJobLifecycleStatus, PyQueuedKind, PyRunningKind, PyStatusEntry,
-    };
 
     #[pymodule_init]
     fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {

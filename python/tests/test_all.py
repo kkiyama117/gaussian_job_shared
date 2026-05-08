@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 import pytest
 
 from gaussian_job_shared._core import sum_as_string
-from gaussian_job_shared._core.entities.slurm import (
+from gaussian_job_shared._core.entities.slurm.sbatch_options import (
     ArrayIndex,
     DependencyClause,
     DependencyJobRef,
@@ -27,19 +27,19 @@ from gaussian_job_shared._core.entities.slurm import (
     SlurmDependency,
     SlurmJobConfig,
 )
+from gaussian_job_shared._core.entities.slurm.status import (
+    JobReason,
+    JobState,
+    JobStatus,
+)
 from gaussian_job_shared._core.entities.workflow import (
     CalcType,
-    FailureKind,
     Job,
     JobEdge,
     JobFlow,
     JobId,
-    JobLifecycleStatus,
     JobSpec,
     Program,
-    QueuedKind,
-    RunningKind,
-    StatusEntry,
 )
 
 
@@ -52,8 +52,8 @@ def test_module_all_includes_new_types():
     from gaussian_job_shared._core import entities
 
     assert "JobFlow" in entities.workflow.__all__
-    assert "JobLifecycleStatus" in entities.workflow.__all__
-    assert "DependencyType" in entities.slurm.__all__
+    assert "JobStatus" in entities.slurm.status.__all__
+    assert "DependencyType" in entities.slurm.sbatch_options.__all__
 
 
 # ------------------------------------------------------------------- newtypes
@@ -85,87 +85,122 @@ def test_dependency_type_variants_and_str():
     assert DependencyType.AfterOk != DependencyType.AfterAny
 
 
-def test_job_lifecycle_status_str():
-    assert str(JobLifecycleStatus.queued(QueuedKind.Pending)) == "pending"
-    assert str(JobLifecycleStatus.done()) == "completed"
+def test_job_state_str_and_token():
+    assert str(JobState.Pending) == "PENDING"
+    assert str(JobState.OutOfMemory) == "OUT_OF_MEMORY"
+    assert JobState.Completed.token == "COMPLETED"
+    assert JobState.Unknown.token == "UNKNOWN"
 
 
-def test_job_lifecycle_status_kind_and_accessors():
-    queued = JobLifecycleStatus.queued(QueuedKind.Pending)
-    assert queued.kind == "queued"
-    assert queued.queued_kind() == QueuedKind.Pending
-    assert queued.running_kind() is None
-    assert queued.failure_kind() is None
-
-    running = JobLifecycleStatus.running(RunningKind.Completing)
-    assert running.kind == "running"
-    assert running.queued_kind() is None
-    assert running.running_kind() == RunningKind.Completing
-    assert running.failure_kind() is None
-
-    done = JobLifecycleStatus.done()
-    assert done.kind == "done"
-    assert done.queued_kind() is None
-    assert done.running_kind() is None
-    assert done.failure_kind() is None
-
-    failed = JobLifecycleStatus.failed(FailureKind.OutOfMemory)
-    assert failed.kind == "failed"
-    assert failed.queued_kind() is None
-    assert failed.running_kind() is None
-    assert failed.failure_kind() == FailureKind.OutOfMemory
-
-
-def test_job_lifecycle_status_unknown():
-    s = JobLifecycleStatus.unknown()
-    assert s.kind == "unknown"
-    assert s.queued_kind() is None
-    assert s.running_kind() is None
-    assert s.failure_kind() is None
-    assert s.token == "UNKNOWN"
-    assert str(s) == "unknown"
-
-
-def test_job_lifecycle_status_parse():
+def test_job_state_parse():
     # Long form
-    assert JobLifecycleStatus.parse("PENDING").kind == "queued"
-    assert JobLifecycleStatus.parse("RUNNING").kind == "running"
-    assert JobLifecycleStatus.parse("COMPLETED").kind == "done"
-    assert (
-        JobLifecycleStatus.parse("OUT_OF_MEMORY").failure_kind()
-        == FailureKind.OutOfMemory
-    )
+    assert JobState.parse("PENDING") == JobState.Pending
+    assert JobState.parse("RUNNING") == JobState.Running
+    assert JobState.parse("COMPLETED") == JobState.Completed
+    assert JobState.parse("OUT_OF_MEMORY") == JobState.OutOfMemory
 
     # Compact code
-    assert JobLifecycleStatus.parse("OOM").failure_kind() == FailureKind.OutOfMemory
-    assert JobLifecycleStatus.parse("PD").queued_kind() == QueuedKind.Pending
-    assert JobLifecycleStatus.parse("CD").kind == "done"
+    assert JobState.parse("PD") == JobState.Pending
+    assert JobState.parse("OOM") == JobState.OutOfMemory
+    assert JobState.parse("CD") == JobState.Completed
+    assert JobState.parse("NF") == JobState.NodeFail
 
-    # Trailing context
-    s = JobLifecycleStatus.parse("CANCELLED by 1234")
-    assert s.kind == "failed"
-    assert s.failure_kind() == FailureKind.Cancelled
+    # Trailing context + case-insensitive
+    assert JobState.parse("CANCELLED by 1234") == JobState.Cancelled
+    assert JobState.parse("  RUNNING  ") == JobState.Running
+    assert JobState.parse("pending") == JobState.Pending
 
-    # Case-insensitive + legacy 4-token back-compat
-    assert JobLifecycleStatus.parse("queued").queued_kind() == QueuedKind.Pending
-    assert JobLifecycleStatus.parse("done").kind == "done"
-
-    # Unknown / empty / garbage
-    assert JobLifecycleStatus.parse("").kind == "unknown"
-    assert JobLifecycleStatus.parse("FOO_BAR_BAZ").kind == "unknown"
+    # Unknown / empty / legacy lowercase tokens are no longer mapped
+    assert JobState.parse("") == JobState.Unknown
+    assert JobState.parse("FOO_BAR") == JobState.Unknown
+    assert JobState.parse("queued") == JobState.Unknown
+    assert JobState.parse("done") == JobState.Unknown
 
 
-def test_job_lifecycle_status_token_round_trip():
-    # token getter returns SLURM long form; parse(token) reconstructs the same value.
-    for s in [
-        JobLifecycleStatus.queued(QueuedKind.Pending),
-        JobLifecycleStatus.queued(QueuedKind.Stopped),
-        JobLifecycleStatus.running(RunningKind.StageOut),
-        JobLifecycleStatus.done(),
-        JobLifecycleStatus.failed(FailureKind.SpecialExit),
-        JobLifecycleStatus.unknown(),
+def test_job_reason_constructors():
+    assert JobReason.none().name == "None"
+    assert JobReason.priority().name == "Priority"
+    assert JobReason.resources().name == "Resources"
+    assert JobReason.dependency().name == "Dependency"
+    assert JobReason.begin_time().name == "BeginTime"
+    assert JobReason.time_limit().name == "TimeLimit"
+    assert JobReason.out_of_memory().name == "OutOfMemory"
+    assert JobReason.non_zero_exit_code().name == "NonZeroExitCode"
+
+
+def test_job_reason_parse_known():
+    assert JobReason.parse("None") == JobReason.none()
+    assert JobReason.parse("Priority") == JobReason.priority()
+    assert JobReason.parse("ReqNodeNotAvail").name == "NodeNotAvail"
+    assert JobReason.parse("AssocGrpCpuLimit").name == "AssocGrpCpuLimit"
+
+
+def test_job_reason_parse_empty_is_none():
+    assert JobReason.parse("") == JobReason.none()
+    assert JobReason.parse("   ") == JobReason.none()
+
+
+def test_job_reason_parse_unknown_falls_back_to_other():
+    r = JobReason.parse("FuturisticReason")
+    assert r.name == "Other"
+    assert r.value == "FuturisticReason"
+    assert str(r) == "FuturisticReason"
+
+
+def test_job_reason_other_constructor_is_explicit():
+    # Even a known canonical name stored verbatim via .other()
+    r = JobReason.other("Priority")
+    assert r.name == "Other"
+    assert r.value == "Priority"
+
+
+def test_job_reason_value_round_trips_via_parse():
+    for r in [
+        JobReason.none(),
+        JobReason.priority(),
+        JobReason.resources(),
+        JobReason.parse("AssocMaxJobsLimit"),
+        JobReason.other("CustomReason"),
     ]:
-        assert JobLifecycleStatus.parse(s.token) == s
+        assert JobReason.parse(r.value) == r if r.name != "Other" else True
+
+
+def test_job_status_default_and_constructors():
+    s = JobStatus(JobState.Pending)
+    assert s.state == JobState.Pending
+    assert s.reason == JobReason.none()
+
+    s2 = JobStatus(JobState.Pending, JobReason.priority())
+    assert s2.state == JobState.Pending
+    assert s2.reason == JobReason.priority()
+
+
+def test_job_status_parse_state_and_reason():
+    s = JobStatus.parse("PD", "Priority")
+    assert s.state == JobState.Pending
+    assert s.reason == JobReason.priority()
+
+    # Reason omitted defaults to None
+    s2 = JobStatus.parse("R")
+    assert s2.state == JobState.Running
+    assert s2.reason == JobReason.none()
+
+
+def test_job_status_equality_and_hash():
+    a = JobStatus(JobState.Pending, JobReason.priority())
+    b = JobStatus(JobState.Pending, JobReason.priority())
+    c = JobStatus(JobState.Pending, JobReason.resources())
+    assert a == b
+    assert a != c
+    assert hash(a) == hash(b)
+
+
+def test_job_status_str():
+    s = JobStatus(JobState.Pending, JobReason.priority())
+    assert str(s) == "PENDING (Priority)"
+
+    s2 = JobStatus(JobState.Running)
+    assert str(s2) == "RUNNING (None)"
 
 
 def test_mail_type_str():
@@ -291,14 +326,6 @@ def test_mail_type_input_from_list_and_parse():
     assert inp == MailTypeInput.parse("BEGIN,END")
     with pytest.raises(ValueError):
         MailTypeInput([])
-
-
-def test_status_entry_round_trip():
-    ts = datetime(2026, 5, 8, 12, 0, 0, tzinfo=timezone.utc)
-    running = JobLifecycleStatus.running(RunningKind.Running)
-    e = StatusEntry(running, ts)
-    assert e.status == running
-    assert e.transitioned_at == ts
 
 
 def test_job_edge_field_access_with_reserved_word_alias():

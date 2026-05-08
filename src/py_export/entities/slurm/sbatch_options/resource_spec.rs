@@ -12,7 +12,7 @@ use crate::entities::slurm as inner;
 #[gen_stub_pyclass_enum]
 #[pyclass(
     name = "MemoryUnit",
-    module = "gaussian_job_shared._core.entities.slurm",
+    module = "gaussian_job_shared._core.entities.slurm.sbatch_options",
     from_py_object,
     eq,
     eq_int,
@@ -70,7 +70,7 @@ impl From<PyMemoryUnit> for inner::MemoryUnit {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "Memory",
-    module = "gaussian_job_shared._core.entities.slurm",
+    module = "gaussian_job_shared._core.entities.slurm.sbatch_options",
     from_py_object,
     eq,
     hash,
@@ -139,7 +139,7 @@ impl From<PyMemory> for inner::Memory {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "ResourceSpecCPU",
-    module = "gaussian_job_shared._core.entities.slurm",
+    module = "gaussian_job_shared._core.entities.slurm.sbatch_options",
     from_py_object,
     eq,
     frozen
@@ -205,7 +205,7 @@ impl From<PyResourceSpecCPU> for inner::ResourceSpecCPU {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "ResourceSpecGPU",
-    module = "gaussian_job_shared._core.entities.slurm",
+    module = "gaussian_job_shared._core.entities.slurm.sbatch_options",
     from_py_object,
     eq,
     frozen
@@ -248,7 +248,7 @@ impl From<PyResourceSpecGPU> for inner::ResourceSpecGPU {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "ResourceSpec",
-    module = "gaussian_job_shared._core.entities.slurm",
+    module = "gaussian_job_shared._core.entities.slurm.sbatch_options",
     from_py_object,
     eq,
     frozen
