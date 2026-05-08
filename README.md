@@ -8,7 +8,7 @@ GAUSSIANジョブパイプラインの共有データ型ライブラリ。京都
 
 `entities` は **2 つの階層**で整理されています:
 
-- `entities::workflow` — フロー視点 (DAG ノード / ライフサイクル状態 / フロー全体)。SLURM 設定を *使う*が、SLURM 内部の概念ではない。
+- `entities::workflow` — フロー視点 (DAG ノード / ライフサイクル状態 / フロー全体)。SLURM 内部の概念とは別
 - `entities::slurm` — sbatch ディレクティブ素材と `SlurmJobConfig` エンベロープ。
 
 ### `entities::workflow`
@@ -22,7 +22,7 @@ GAUSSIANジョブパイプラインの共有データ型ライブラリ。京都
 | `JobSpec` | `program` + `config: SlurmJobConfig` + `body` (bash 本文)。フロー非依存で複数フロー間で再利用可能 |
 | `JobId` / `Program` / `CalcType` | 透過 (`#[serde(transparent)]`) ニュータイプ |
 | `JobEdge` | `Job.parents` に積む入辺。`from: JobId` + `kind: DependencyType` (afterok / afterany / after / …) |
-| `JobLifecycleStatus` | `queued` / `running` / `done` / `failed` — Python 側 `Status` と対応するワークフロー視点の状態 (SLURM の `PENDING/RUNNING/...` とは別概念) |
+| `JobLifecycleStatus` | `queued` / `running` / `done` / `failed` — status of job|
 | `StatusEntry` | `(status, transitioned_at: DateTime<Utc>)` のペア |
 
 ### `entities::slurm` (SLURM 用フィールド型)
@@ -96,5 +96,3 @@ uv run ruff format --check .
 
 - `pyo3` (default) — `pyo3` / `pyo3-async-runtimes` / `pyo3-log` / `pythonize` を有効化
 - `stub_gen` (default) — `pyo3-stub-gen` 経由で `.pyi` を生成する `stub_gen` バイナリを有効化
-
-`pyo3/extension-module` は **default に含めず**、各 maturin パッケージの `pyproject.toml` 側 (`[tool.maturin] features`) で個別に有効化する方針です。これにより `stub_gen` バイナリが libpython にリンクできます。
