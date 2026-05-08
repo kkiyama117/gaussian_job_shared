@@ -54,22 +54,28 @@ impl std::fmt::Debug for PyJobLifecycleStatus {
 
 impl From<inner::JobLifecycleStatus> for PyJobLifecycleStatus {
     fn from(v: inner::JobLifecycleStatus) -> Self {
+        // TODO(Task 2): replace with per-sub-variant mapping once PyJobLifecycleStatus
+        // is expanded to match the new nested shape.
         match v {
-            inner::JobLifecycleStatus::Queued => Self::Queued,
-            inner::JobLifecycleStatus::Running => Self::Running,
+            inner::JobLifecycleStatus::Queued(_) => Self::Queued,
+            inner::JobLifecycleStatus::Running(_) => Self::Running,
             inner::JobLifecycleStatus::Done => Self::Done,
-            inner::JobLifecycleStatus::Failed => Self::Failed,
+            inner::JobLifecycleStatus::Failed(_) => Self::Failed,
+            inner::JobLifecycleStatus::Unknown => Self::Failed,
         }
     }
 }
 
 impl From<PyJobLifecycleStatus> for inner::JobLifecycleStatus {
     fn from(v: PyJobLifecycleStatus) -> Self {
+        // TODO(Task 2): replace with per-sub-variant mapping once PyJobLifecycleStatus
+        // is expanded to match the new nested shape.
+        use inner::{FailureKind, QueuedKind, RunningKind};
         match v {
-            PyJobLifecycleStatus::Queued => Self::Queued,
-            PyJobLifecycleStatus::Running => Self::Running,
+            PyJobLifecycleStatus::Queued => Self::Queued(QueuedKind::Pending),
+            PyJobLifecycleStatus::Running => Self::Running(RunningKind::Running),
             PyJobLifecycleStatus::Done => Self::Done,
-            PyJobLifecycleStatus::Failed => Self::Failed,
+            PyJobLifecycleStatus::Failed => Self::Failed(FailureKind::Failed),
         }
     }
 }
