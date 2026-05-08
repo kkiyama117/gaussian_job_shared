@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-/// Lifecycle of a Job from a workflow perspective. Distinct from
-/// `SlurmJobState` (PENDING/RUNNING/...) which lives in the
-/// slurm-async-runner crate.
+/// Lifecycle of a Job from a workflow perspective.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum JobLifecycleStatus {
