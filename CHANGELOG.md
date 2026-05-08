@@ -30,6 +30,32 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `"running"`, `"done"`, `"failed"`) continues to deserialize cleanly
   to the canonical sub-variant — no data migration is required.
 
+### Changed (BREAKING — on-disk wire format)
+
+- The same in-memory state now serializes to the SLURM long-form
+  token (lower-cased), so the next time an existing TOML file is
+  rewritten, two of the four legacy tokens change on disk:
+
+  | Variant   | Before     | After         |
+  |-----------|------------|---------------|
+  | `Queued`  | `"queued"` | `"pending"`   |
+  | `Running` | `"running"`| `"running"`   |
+  | `Done`    | `"done"`   | `"completed"` |
+  | `Failed`  | `"failed"` | `"failed"`    |
+
+  Reads of legacy bytes are unaffected (covered by
+  `toml_back_compat_legacy_lowercase_tokens`), so no data migration
+  is required. But anything outside this crate that greps or diffs
+  TOML by raw string (CI, dashboards, audits) will see churn the
+  first time each affected file is rewritten.
+
+  Python `str(status)` mirrors this: `str(JobLifecycleStatus.done())`
+  is now `"completed"` (was `"done"`) and the canonical Queued status
+  stringifies to `"pending"` (was `"queued"`). Downstream code that
+  string-compares or logs `str(status)` should switch to `s.kind`
+  (`"queued"` / `"running"` / `"done"` / `"failed"` / `"unknown"`)
+  for category checks, or `s.token` for the SLURM long form.
+
 ### Added
 
 - `QueuedKind`, `RunningKind`, `FailureKind` Python enums covering
