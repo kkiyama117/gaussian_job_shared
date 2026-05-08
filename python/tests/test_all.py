@@ -29,6 +29,7 @@ from gaussian_job_shared._core.entities.slurm import (
 )
 from gaussian_job_shared._core.entities.workflow import (
     CalcType,
+    FailureKind,
     Job,
     JobEdge,
     JobFlow,
@@ -36,6 +37,8 @@ from gaussian_job_shared._core.entities.workflow import (
     JobLifecycleStatus,
     JobSpec,
     Program,
+    QueuedKind,
+    RunningKind,
     StatusEntry,
 )
 
@@ -83,8 +86,86 @@ def test_dependency_type_variants_and_str():
 
 
 def test_job_lifecycle_status_str():
-    assert str(JobLifecycleStatus.Queued) == "queued"
-    assert str(JobLifecycleStatus.Done) == "done"
+    assert str(JobLifecycleStatus.queued(QueuedKind.Pending)) == "pending"
+    assert str(JobLifecycleStatus.done()) == "completed"
+
+
+def test_job_lifecycle_status_kind_and_accessors():
+    queued = JobLifecycleStatus.queued(QueuedKind.Pending)
+    assert queued.kind == "queued"
+    assert queued.queued_kind() == QueuedKind.Pending
+    assert queued.running_kind() is None
+    assert queued.failure_kind() is None
+
+    running = JobLifecycleStatus.running(RunningKind.Completing)
+    assert running.kind == "running"
+    assert running.queued_kind() is None
+    assert running.running_kind() == RunningKind.Completing
+    assert running.failure_kind() is None
+
+    done = JobLifecycleStatus.done()
+    assert done.kind == "done"
+    assert done.queued_kind() is None
+    assert done.running_kind() is None
+    assert done.failure_kind() is None
+
+    failed = JobLifecycleStatus.failed(FailureKind.OutOfMemory)
+    assert failed.kind == "failed"
+    assert failed.queued_kind() is None
+    assert failed.running_kind() is None
+    assert failed.failure_kind() == FailureKind.OutOfMemory
+
+
+def test_job_lifecycle_status_unknown():
+    s = JobLifecycleStatus.unknown()
+    assert s.kind == "unknown"
+    assert s.queued_kind() is None
+    assert s.running_kind() is None
+    assert s.failure_kind() is None
+    assert s.token == "UNKNOWN"
+    assert str(s) == "unknown"
+
+
+def test_job_lifecycle_status_parse():
+    # Long form
+    assert JobLifecycleStatus.parse("PENDING").kind == "queued"
+    assert JobLifecycleStatus.parse("RUNNING").kind == "running"
+    assert JobLifecycleStatus.parse("COMPLETED").kind == "done"
+    assert (
+        JobLifecycleStatus.parse("OUT_OF_MEMORY").failure_kind()
+        == FailureKind.OutOfMemory
+    )
+
+    # Compact code
+    assert JobLifecycleStatus.parse("OOM").failure_kind() == FailureKind.OutOfMemory
+    assert JobLifecycleStatus.parse("PD").queued_kind() == QueuedKind.Pending
+    assert JobLifecycleStatus.parse("CD").kind == "done"
+
+    # Trailing context
+    s = JobLifecycleStatus.parse("CANCELLED by 1234")
+    assert s.kind == "failed"
+    assert s.failure_kind() == FailureKind.Cancelled
+
+    # Case-insensitive + legacy 4-token back-compat
+    assert JobLifecycleStatus.parse("queued").queued_kind() == QueuedKind.Pending
+    assert JobLifecycleStatus.parse("done").kind == "done"
+
+    # Unknown / empty / garbage
+    assert JobLifecycleStatus.parse("").kind == "unknown"
+    assert JobLifecycleStatus.parse("FOO_BAR_BAZ").kind == "unknown"
+
+
+def test_job_lifecycle_status_token_round_trip():
+    # token getter returns SLURM long form; parse(token) reconstructs the same value.
+    for s in [
+        JobLifecycleStatus.queued(QueuedKind.Pending),
+        JobLifecycleStatus.queued(QueuedKind.Stopped),
+        JobLifecycleStatus.running(RunningKind.StageOut),
+        JobLifecycleStatus.done(),
+        JobLifecycleStatus.failed(FailureKind.SpecialExit),
+        JobLifecycleStatus.unknown(),
+    ]:
+        assert JobLifecycleStatus.parse(s.token) == s
 
 
 def test_mail_type_str():
@@ -214,8 +295,9 @@ def test_mail_type_input_from_list_and_parse():
 
 def test_status_entry_round_trip():
     ts = datetime(2026, 5, 8, 12, 0, 0, tzinfo=timezone.utc)
-    e = StatusEntry(JobLifecycleStatus.Running, ts)
-    assert e.status == JobLifecycleStatus.Running
+    running = JobLifecycleStatus.running(RunningKind.Running)
+    e = StatusEntry(running, ts)
+    assert e.status == running
     assert e.transitioned_at == ts
 
 

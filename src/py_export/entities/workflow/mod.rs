@@ -171,7 +171,9 @@ pub(crate) mod inner_module {
     use super::job::{PyCalcType, PyJob, PyJobEdge, PyJobId, PyJobSpec, PyProgram};
 
     #[pymodule_export]
-    use super::status::{PyJobLifecycleStatus, PyStatusEntry};
+    use super::status::{
+        PyFailureKind, PyJobLifecycleStatus, PyQueuedKind, PyRunningKind, PyStatusEntry,
+    };
 
     #[pymodule_init]
     fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
