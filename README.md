@@ -6,7 +6,12 @@ GAUSSIANジョブパイプラインの共有データ型ライブラリ。京都
 
 ## 主要な型 (Rust)
 
-### `entities::job_flow` / `entities::slurm`
+`entities` は **2 つの階層**で整理されています:
+
+- `entities::workflow` — フロー視点 (DAG ノード / ライフサイクル状態 / フロー全体)。SLURM 設定を *使う*が、SLURM 内部の概念ではない。
+- `entities::slurm` — sbatch ディレクティブ素材と `SlurmJobConfig` エンベロープ。
+
+### `entities::workflow`
 
 `JobSpec` (small / 状態非依存) と `Job` (large / フロー内) の **2 段構成** + DAG (`JobFlow`) です。
 
@@ -17,19 +22,16 @@ GAUSSIANジョブパイプラインの共有データ型ライブラリ。京都
 | `JobSpec` | `program` + `config: SlurmJobConfig` + `body` (bash 本文)。フロー非依存で複数フロー間で再利用可能 |
 | `JobId` / `Program` / `CalcType` | 透過 (`#[serde(transparent)]`) ニュータイプ |
 | `JobEdge` | `Job.parents` に積む入辺。`from: JobId` + `kind: DependencyType` (afterok / afterany / after / …) |
+| `JobLifecycleStatus` | `queued` / `running` / `done` / `failed` — Python 側 `Status` と対応するワークフロー視点の状態 (SLURM の `PENDING/RUNNING/...` とは別概念) |
+| `StatusEntry` | `(status, transitioned_at: DateTime<Utc>)` のペア |
 
-### `entities::slurm::*` (SLURM 用フィールド型)
+### `entities::slurm` (SLURM 用フィールド型)
 
 - `SlurmJobConfig` — `partition` / `time_limit` / `log_stdout` / `log_stderr` / `comment` / `job_name` / `array_spec` / `dependency` / `mail_user` / `mail_types` / `resource_spec`
 - `JobTimeLimit` — `--time` の 6 種表記 (`M`, `M:S`, `H:M:S`, `D-H`, `D-H:M`, `D-H:M:S`) を受け、常に `HH:MM:SS` で再シリアライズ
 - `ResourceSpec` (`p=…:t=…:c=…:m=…` / `g=…`) — 京大スパコンの `--rsc` 形式
 - `SlurmDependency` (`afterok:…`, `afterany:…` 等) と `SlurmArraySpec` (`--array=0-9%2` 等)
 - `MailType` / `MailTypeInput`
-
-### `entities::slurm::status`
-
-- `JobLifecycleStatus` (`queued` / `running` / `done` / `failed`) — Python 側 `Status` と対応するワークフロー視点の状態
-- `StatusEntry` — `(status, transitioned_at: DateTime<Utc>)` のペア
 
 ### `error`
 

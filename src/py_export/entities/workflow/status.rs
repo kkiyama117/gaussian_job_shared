@@ -1,15 +1,15 @@
-//! PyO3 wrappers for `entities::slurm::status::*`.
+//! PyO3 wrappers for `entities::workflow::status::*`.
 
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pyclass_enum, gen_stub_pymethods};
 
-use crate::entities::slurm::status as inner;
+use crate::entities::workflow::status as inner;
 
 // ------------------------------------------------------- JobLifecycleStatus
 #[gen_stub_pyclass_enum]
 #[pyclass(
     name = "JobLifecycleStatus",
-    module = "gaussian_job_shared._core.entities.slurm",
+    module = "gaussian_job_shared._core.entities.workflow",
     from_py_object,
     eq,
     eq_int,
@@ -78,7 +78,7 @@ impl From<PyJobLifecycleStatus> for inner::JobLifecycleStatus {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "StatusEntry",
-    module = "gaussian_job_shared._core.entities.slurm",
+    module = "gaussian_job_shared._core.entities.workflow",
     from_py_object,
     eq
 )]

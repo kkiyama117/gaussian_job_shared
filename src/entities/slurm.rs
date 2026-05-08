@@ -1,11 +1,11 @@
-//! Entities that represents slurm Job and JobConfig
+//! SLURM submission tier — sbatch directive primitives plus the
+//! [`SlurmJobConfig`] envelope that aggregates them. The workflow node
+//! (`Job` / `JobSpec` / `JobEdge` / `JobId` / `Program`) and the runtime
+//! lifecycle status (`JobLifecycleStatus` / `StatusEntry`) live under
+//! [`crate::entities::workflow`] — those are flow concepts, not SLURM
+//! internals.
+//!
 //! For detail, see [Kyoto Univ doc](https://web.kudpc.kyoto-u.ac.jp/manual/ja/run/batch#slurm) and [Official SLURM page](https://slurm.schedmd.com/sbatch.html)
-
-pub mod job;
-pub use job::{Job, JobEdge, JobId, JobSpec, Program};
-
-pub mod status;
-pub use status::{JobLifecycleStatus, StatusEntry};
 
 pub mod array_spec;
 

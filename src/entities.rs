@@ -1,4 +1,6 @@
 pub mod slurm;
 
-pub mod job_flow;
-pub use job_flow::{CalcType, JobFlow};
+pub mod workflow;
+pub use workflow::{
+    CalcType, Job, JobEdge, JobFlow, JobId, JobLifecycleStatus, JobSpec, Program, StatusEntry,
+};

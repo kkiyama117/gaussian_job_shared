@@ -1,4 +1,16 @@
-//! JobFlow + CalcType — top-level flow type. See spec §5.1.
+//! Workflow tier — DAG-shaped job flow that *uses* SLURM submission types but
+//! is itself a flow concept (not a SLURM internal). Holds the workflow node
+//! (`Job` / `JobSpec` / `JobEdge` / `JobId` / `Program`), the lifecycle status
+//! (`JobLifecycleStatus` / `StatusEntry`), and the top-level container
+//! (`JobFlow` / `CalcType`).
+//!
+//! See `docs/superpowers/specs/2026-05-08-slurm-job-flow-structs-design.md`.
+
+pub mod job;
+pub use job::{Job, JobEdge, JobId, JobSpec, Program};
+
+pub mod status;
+pub use status::{JobLifecycleStatus, StatusEntry};
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -6,8 +18,6 @@ use std::path::PathBuf;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-use crate::entities::slurm::{Job, JobId};
 
 /// Calculation type — describes the overall purpose of a `JobFlow`
 /// (e.g. "opt", "freq", "opt+td"). Stage-level kinds are intentionally
@@ -90,7 +100,7 @@ mod tests {
 
     use chrono::TimeZone;
 
-    use crate::entities::slurm::{DependencyType, JobEdge, JobSpec, Program, SlurmJobConfig};
+    use crate::entities::slurm::{DependencyType, SlurmJobConfig};
 
     fn sample_config() -> SlurmJobConfig {
         SlurmJobConfig {

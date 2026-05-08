@@ -1,10 +1,10 @@
-//! Job, JobSpec, JobEdge, JobId, Program — the in-flow Slurm Job tier.
+//! Job, JobSpec, JobEdge, JobId, Program — the in-flow workflow Job tier.
 //! See `docs/superpowers/specs/2026-05-08-slurm-job-flow-structs-design.md`
 //! §5.2.
 
 use serde::{Deserialize, Serialize};
 
-use super::dependency::DependencyType;
+use crate::entities::slurm::DependencyType;
 
 /// Stable ID of a `Job` within a `JobFlow`. Used as the map key in
 /// `JobFlow.jobs: BTreeMap<JobId, Job>` and as bash-filename / log-prefix
@@ -75,7 +75,7 @@ pub struct JobEdge {
 
 /// Adapter so `JobEdge` can serde a `DependencyType` even though that enum
 /// has no `derive(Serialize, Deserialize)` of its own. Round-trips through
-/// `Display` / `FromStr` (defined in `super::dependency`).
+/// `Display` / `FromStr` (defined in `crate::entities::slurm::dependency`).
 mod dep_kind_serde {
     use std::str::FromStr;
 
@@ -105,7 +105,7 @@ pub struct JobSpec {
     /// Slurm submission directives. TaskManager produces this by merging
     /// cluster-wide defaults with per-job overrides — by the time it
     /// lands in `JobSpec` it is already complete.
-    pub config: super::SlurmJobConfig,
+    pub config: crate::entities::slurm::SlurmJobConfig,
 
     /// Bash script body (text *after* the `#SBATCH` directive block).
     pub body: String,
@@ -210,7 +210,7 @@ mod tests {
         assert_eq!(back, h);
     }
 
-    use super::super::SlurmJobConfig;
+    use crate::entities::slurm::SlurmJobConfig;
 
     fn sample_config() -> SlurmJobConfig {
         SlurmJobConfig {

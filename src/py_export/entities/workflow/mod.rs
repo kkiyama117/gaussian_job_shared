@@ -1,4 +1,8 @@
-//! PyO3 wrappers for `entities::job_flow::{CalcType, JobFlow}`.
+//! Python-facing wrappers for `crate::entities::workflow::*` (the workflow
+//! tier — DAG-shaped flow that *uses* SLURM types but is not SLURM-internal).
+
+pub mod job;
+pub mod status;
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -8,16 +12,15 @@ use pyo3::prelude::*;
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 use uuid::Uuid;
 
-use crate::entities::job_flow as inner;
-use crate::entities::slurm as slurm_inner;
+use crate::entities::workflow as inner;
 
-use super::slurm::job::{PyJob, PyJobId};
+use self::job::{PyJob, PyJobId};
 
 // ----------------------------------------------------------------- CalcType
 #[gen_stub_pyclass]
 #[pyclass(
     name = "CalcType",
-    module = "gaussian_job_shared._core.entities",
+    module = "gaussian_job_shared._core.entities.workflow",
     from_py_object,
     eq,
     ord,
@@ -65,7 +68,7 @@ impl From<PyCalcType> for inner::CalcType {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "JobFlow",
-    module = "gaussian_job_shared._core.entities",
+    module = "gaussian_job_shared._core.entities.workflow",
     from_py_object
 )]
 #[derive(Clone)]
@@ -98,7 +101,7 @@ impl PyJobFlow {
             .map_err(|e| PyValueError::new_err(format!("invalid UUID {uuid:?}: {e}")))?;
         let jobs = jobs
             .into_iter()
-            .map(|(k, v)| (slurm_inner::JobId(k), v.0))
+            .map(|(k, v)| (inner::JobId(k), v.0))
             .collect();
         Ok(Self(inner::JobFlow {
             uuid: parsed_uuid,
@@ -182,10 +185,7 @@ impl PyJobFlow {
 
     #[setter]
     fn set_jobs(&mut self, v: BTreeMap<String, PyJob>) {
-        self.0.jobs = v
-            .into_iter()
-            .map(|(k, v)| (slurm_inner::JobId(k), v.0))
-            .collect();
+        self.0.jobs = v.into_iter().map(|(k, v)| (inner::JobId(k), v.0)).collect();
     }
 
     /// Convenience: insert a single job under the given `JobId`.
@@ -217,5 +217,31 @@ impl From<inner::JobFlow> for PyJobFlow {
 impl From<PyJobFlow> for inner::JobFlow {
     fn from(v: PyJobFlow) -> Self {
         v.0
+    }
+}
+
+#[pymodule(name = "workflow")]
+pub(crate) mod inner_module {
+    use super::*;
+
+    const PYTHON_MODULE_NAME: &str = "gaussian_job_shared._core.entities.workflow";
+
+    #[pymodule_export]
+    use super::{PyCalcType, PyJobFlow};
+
+    #[pymodule_export]
+    use super::job::{PyJob, PyJobEdge, PyJobId, PyJobSpec, PyProgram};
+
+    #[pymodule_export]
+    use super::status::{PyJobLifecycleStatus, PyStatusEntry};
+
+    #[pymodule_init]
+    fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
+        let py = m.py();
+        py.import("sys")?
+            .getattr("modules")?
+            .set_item(PYTHON_MODULE_NAME, m)?;
+        log::debug!("{} Rust module initialized", PYTHON_MODULE_NAME);
+        Ok(())
     }
 }

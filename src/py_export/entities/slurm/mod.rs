@@ -1,11 +1,11 @@
-//! Python-facing wrappers for `crate::entities::slurm::*`.
+//! Python-facing wrappers for `crate::entities::slurm::*` (sbatch primitives
+//! and the [`PySlurmJobConfig`] envelope). Workflow types (`PyJob`,
+//! `PyJobLifecycleStatus`, etc.) live under `crate::py_export::entities::workflow`.
 
 pub mod array_spec;
 pub mod config;
 pub mod dependency;
-pub mod job;
 pub mod resource_spec;
-pub mod status;
 pub mod time_limit;
 
 use pyo3::prelude::*;
@@ -15,12 +15,6 @@ pub(crate) mod inner_module {
     use super::*;
 
     const PYTHON_MODULE_NAME: &str = "gaussian_job_shared._core.entities.slurm";
-
-    #[pymodule_export]
-    use super::job::{PyJob, PyJobEdge, PyJobId, PyJobSpec, PyProgram};
-
-    #[pymodule_export]
-    use super::status::{PyJobLifecycleStatus, PyStatusEntry};
 
     #[pymodule_export]
     use super::dependency::{

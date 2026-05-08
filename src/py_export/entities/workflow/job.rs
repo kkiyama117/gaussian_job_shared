@@ -1,19 +1,19 @@
-//! PyO3 wrappers for `entities::slurm::{JobId, Program, JobEdge, JobSpec, Job}`.
+//! PyO3 wrappers for `entities::workflow::{JobId, Program, JobEdge, JobSpec, Job}`.
 //! See `docs/superpowers/specs/2026-05-08-rust-python-ffi-design.md` §4.
 
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 
-use crate::entities::slurm as inner;
+use crate::entities::workflow as inner;
 
-use super::config::PySlurmJobConfig;
-use super::dependency::PyDependencyType;
+use crate::py_export::entities::slurm::config::PySlurmJobConfig;
+use crate::py_export::entities::slurm::dependency::PyDependencyType;
 
 // -------------------------------------------------------------------- JobId
 #[gen_stub_pyclass]
 #[pyclass(
     name = "JobId",
-    module = "gaussian_job_shared._core.entities.slurm",
+    module = "gaussian_job_shared._core.entities.workflow",
     from_py_object,
     eq,
     ord,
@@ -62,7 +62,7 @@ impl From<PyJobId> for inner::JobId {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "Program",
-    module = "gaussian_job_shared._core.entities.slurm",
+    module = "gaussian_job_shared._core.entities.workflow",
     from_py_object,
     eq,
     ord,
@@ -110,7 +110,7 @@ impl From<PyProgram> for inner::Program {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "JobEdge",
-    module = "gaussian_job_shared._core.entities.slurm",
+    module = "gaussian_job_shared._core.entities.workflow",
     from_py_object,
     eq
 )]
@@ -172,7 +172,7 @@ impl From<PyJobEdge> for inner::JobEdge {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "JobSpec",
-    module = "gaussian_job_shared._core.entities.slurm",
+    module = "gaussian_job_shared._core.entities.workflow",
     from_py_object
 )]
 #[derive(Clone)]
@@ -245,7 +245,7 @@ impl From<PyJobSpec> for inner::JobSpec {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "Job",
-    module = "gaussian_job_shared._core.entities.slurm",
+    module = "gaussian_job_shared._core.entities.workflow",
     from_py_object
 )]
 #[derive(Clone)]

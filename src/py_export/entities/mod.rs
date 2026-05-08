@@ -1,8 +1,8 @@
 //! Python-facing wrappers for `crate::entities::*`.
 //! See `docs/superpowers/specs/2026-05-08-rust-python-ffi-design.md`.
 
-pub mod job_flow;
 pub mod slurm;
+pub mod workflow;
 
 use pyo3::prelude::*;
 
@@ -13,10 +13,10 @@ pub(crate) mod inner_module {
     const PYTHON_MODULE_NAME: &str = "gaussian_job_shared._core.entities";
 
     #[pymodule_export]
-    use super::slurm::inner_module;
+    use super::slurm::inner_module as slurm_module;
 
     #[pymodule_export]
-    use super::job_flow::{PyCalcType, PyJobFlow};
+    use super::workflow::inner_module as workflow_module;
 
     #[pymodule_init]
     fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
