@@ -10,6 +10,7 @@ import pathlib
 import typing
 __all__ = [
     "CalcType",
+    "FailureKind",
     "Job",
     "JobEdge",
     "JobFlow",
@@ -17,6 +18,8 @@ __all__ = [
     "JobLifecycleStatus",
     "JobSpec",
     "Program",
+    "QueuedKind",
+    "RunningKind",
     "StatusEntry",
 ]
 
@@ -135,6 +138,76 @@ class JobId:
     def __repr__(self) -> builtins.str: ...
 
 @typing.final
+class JobLifecycleStatus:
+    r"""
+    Wraps the [`JobLifecycleStatus`] sum type. Construct one of the five
+    variants via the `queued`/`running`/`done`/`failed`/`unknown`
+    classmethods, or parse a raw SLURM token via `parse`. Inspect via
+    `kind` plus the matching `queued_kind()`/`running_kind()`/
+    `failure_kind()` accessor.
+    """
+    @property
+    def kind(self) -> builtins.str:
+        r"""
+        Outer discriminant: `"queued"`, `"running"`, `"done"`,
+        `"failed"`, or `"unknown"`.
+        """
+    @property
+    def token(self) -> builtins.str:
+        r"""
+        SLURM long-form token (e.g. `"PENDING"`, `"OUT_OF_MEMORY"`,
+        `"COMPLETED"`, `"UNKNOWN"`).
+        """
+    def __eq__(self, other: builtins.object, /) -> builtins.bool: ...
+    def __hash__(self) -> builtins.int: ...
+    @staticmethod
+    def queued(kind: QueuedKind) -> JobLifecycleStatus:
+        r"""
+        Build a `Queued(kind)` status.
+        """
+    @staticmethod
+    def running(kind: RunningKind) -> JobLifecycleStatus:
+        r"""
+        Build a `Running(kind)` status.
+        """
+    @staticmethod
+    def done() -> JobLifecycleStatus:
+        r"""
+        Build the `Done` status (terminal success).
+        """
+    @staticmethod
+    def failed(kind: FailureKind) -> JobLifecycleStatus:
+        r"""
+        Build a `Failed(kind)` status (terminal failure).
+        """
+    @staticmethod
+    def unknown() -> JobLifecycleStatus:
+        r"""
+        Build the `Unknown` sentinel status.
+        """
+    @staticmethod
+    def parse(raw: builtins.str) -> JobLifecycleStatus:
+        r"""
+        Parse a raw SLURM state token (`"PENDING"`, `"OUT_OF_MEMORY"`,
+        `"CANCELLED by 1234"`, lowercase / compact codes / legacy
+        workflow tokens, …). Falls back to `Unknown`.
+        """
+    def queued_kind(self) -> typing.Optional[QueuedKind]:
+        r"""
+        `Some(kind)` for `Queued(_)`, else `None`.
+        """
+    def running_kind(self) -> typing.Optional[RunningKind]:
+        r"""
+        `Some(kind)` for `Running(_)`, else `None`.
+        """
+    def failure_kind(self) -> typing.Optional[FailureKind]:
+        r"""
+        `Some(kind)` for `Failed(_)`, else `None`.
+        """
+    def __str__(self) -> builtins.str: ...
+    def __repr__(self) -> builtins.str: ...
+
+@typing.final
 class JobSpec:
     @property
     def program(self) -> Program: ...
@@ -180,11 +253,42 @@ class StatusEntry:
     def __repr__(self) -> builtins.str: ...
 
 @typing.final
-class JobLifecycleStatus(enum.Enum):
-    Queued = ...
-    Running = ...
-    Done = ...
+class FailureKind(enum.Enum):
+    BootFail = ...
+    Cancelled = ...
+    Deadline = ...
     Failed = ...
+    NodeFail = ...
+    OutOfMemory = ...
+    Preempted = ...
+    Revoked = ...
+    SpecialExit = ...
+    Timeout = ...
+
+    def __str__(self) -> builtins.str: ...
+    def __repr__(self) -> builtins.str: ...
+
+@typing.final
+class QueuedKind(enum.Enum):
+    Pending = ...
+    Configuring = ...
+    Requeued = ...
+    RequeueFed = ...
+    RequeueHold = ...
+    ResvDelHold = ...
+    Suspended = ...
+    Stopped = ...
+
+    def __str__(self) -> builtins.str: ...
+    def __repr__(self) -> builtins.str: ...
+
+@typing.final
+class RunningKind(enum.Enum):
+    Running = ...
+    Completing = ...
+    Resizing = ...
+    Signaling = ...
+    StageOut = ...
 
     def __str__(self) -> builtins.str: ...
     def __repr__(self) -> builtins.str: ...
