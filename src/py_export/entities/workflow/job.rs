@@ -1,4 +1,4 @@
-//! PyO3 wrappers for `entities::workflow::{JobId, Program, JobEdge, JobSpec, Job}`.
+//! PyO3 wrappers for `entities::workflow::{CalcType, JobId, Program, JobEdge, JobSpec, Job}`.
 //! See `docs/superpowers/specs/2026-05-08-rust-python-ffi-design.md` §4.
 
 use pyo3::prelude::*;
@@ -8,6 +8,54 @@ use crate::entities::workflow as inner;
 
 use crate::py_export::entities::slurm::config::PySlurmJobConfig;
 use crate::py_export::entities::slurm::dependency::PyDependencyType;
+
+// ----------------------------------------------------------------- CalcType
+#[gen_stub_pyclass]
+#[pyclass(
+    name = "CalcType",
+    module = "gaussian_job_shared._core.entities.workflow",
+    from_py_object,
+    eq,
+    ord,
+    hash,
+    frozen
+)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct PyCalcType(pub inner::CalcType);
+
+#[gen_stub_pymethods]
+#[pymethods]
+impl PyCalcType {
+    #[new]
+    fn new(value: String) -> Self {
+        Self(inner::CalcType(value))
+    }
+
+    #[getter]
+    fn value(&self) -> String {
+        self.0.0.clone()
+    }
+
+    fn __str__(&self) -> String {
+        self.0.0.clone()
+    }
+
+    fn __repr__(&self) -> String {
+        format!("CalcType({:?})", self.0.0)
+    }
+}
+
+impl From<inner::CalcType> for PyCalcType {
+    fn from(v: inner::CalcType) -> Self {
+        Self(v)
+    }
+}
+
+impl From<PyCalcType> for inner::CalcType {
+    fn from(v: PyCalcType) -> Self {
+        v.0
+    }
+}
 
 // -------------------------------------------------------------------- JobId
 #[gen_stub_pyclass]

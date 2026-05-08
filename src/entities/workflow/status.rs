@@ -1,11 +1,8 @@
-//! JobLifecycleStatus + StatusEntry — Python `Status` / `StatusEntry` mirror.
-//! See `docs/superpowers/specs/2026-05-08-slurm-job-flow-structs-design.md` §5.3.
-
 use serde::{Deserialize, Serialize};
 
-/// Lifecycle of a Job from a workflow perspective. Mirrors Python's
-/// `gaussian_job_shared.fs.status.Status`. Distinct from `SlurmJobState`
-/// (PENDING/RUNNING/...) which lives in the slurm-async-runner crate.
+/// Lifecycle of a Job from a workflow perspective. Distinct from
+/// `SlurmJobState` (PENDING/RUNNING/...) which lives in the
+/// slurm-async-runner crate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum JobLifecycleStatus {
@@ -16,7 +13,6 @@ pub enum JobLifecycleStatus {
 }
 
 /// One entry in a Job's status history: a (status, timestamp) pair.
-/// Mirrors Python's `StatusEntry` dataclass.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct StatusEntry {

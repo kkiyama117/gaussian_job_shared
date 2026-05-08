@@ -16,54 +16,6 @@ use crate::entities::workflow as inner;
 
 use self::job::{PyJob, PyJobId};
 
-// ----------------------------------------------------------------- CalcType
-#[gen_stub_pyclass]
-#[pyclass(
-    name = "CalcType",
-    module = "gaussian_job_shared._core.entities.workflow",
-    from_py_object,
-    eq,
-    ord,
-    hash,
-    frozen
-)]
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct PyCalcType(pub inner::CalcType);
-
-#[gen_stub_pymethods]
-#[pymethods]
-impl PyCalcType {
-    #[new]
-    fn new(value: String) -> Self {
-        Self(inner::CalcType(value))
-    }
-
-    #[getter]
-    fn value(&self) -> String {
-        self.0.0.clone()
-    }
-
-    fn __str__(&self) -> String {
-        self.0.0.clone()
-    }
-
-    fn __repr__(&self) -> String {
-        format!("CalcType({:?})", self.0.0)
-    }
-}
-
-impl From<inner::CalcType> for PyCalcType {
-    fn from(v: inner::CalcType) -> Self {
-        Self(v)
-    }
-}
-
-impl From<PyCalcType> for inner::CalcType {
-    fn from(v: PyCalcType) -> Self {
-        v.0
-    }
-}
-
 // ------------------------------------------------------------------ JobFlow
 #[gen_stub_pyclass]
 #[pyclass(
@@ -83,7 +35,6 @@ impl PyJobFlow {
     #[new]
     #[pyo3(signature = (
         uuid,
-        calc_type,
         created_at,
         work_dir,
         tags=BTreeMap::new(),
@@ -91,7 +42,6 @@ impl PyJobFlow {
     ))]
     fn new(
         uuid: String,
-        calc_type: PyCalcType,
         created_at: chrono::DateTime<chrono::Utc>,
         work_dir: PathBuf,
         tags: BTreeMap<String, String>,
@@ -105,7 +55,6 @@ impl PyJobFlow {
             .collect();
         Ok(Self(inner::JobFlow {
             uuid: parsed_uuid,
-            calc_type: calc_type.0,
             created_at,
             work_dir,
             tags,
@@ -129,16 +78,6 @@ impl PyJobFlow {
         self.0.uuid =
             Uuid::parse_str(&v).map_err(|e| PyValueError::new_err(format!("invalid UUID: {e}")))?;
         Ok(())
-    }
-
-    #[getter]
-    fn calc_type(&self) -> PyCalcType {
-        PyCalcType(self.0.calc_type.clone())
-    }
-
-    #[setter]
-    fn set_calc_type(&mut self, v: PyCalcType) {
-        self.0.calc_type = v.0;
     }
 
     #[getter]
@@ -200,9 +139,8 @@ impl PyJobFlow {
 
     fn __repr__(&self) -> String {
         format!(
-            "JobFlow(uuid={:?}, calc_type={:?}, jobs={})",
+            "JobFlow(uuid={:?}, jobs={})",
             self.0.uuid.to_string(),
-            self.0.calc_type.0,
             self.0.jobs.len()
         )
     }
@@ -227,10 +165,10 @@ pub(crate) mod inner_module {
     const PYTHON_MODULE_NAME: &str = "gaussian_job_shared._core.entities.workflow";
 
     #[pymodule_export]
-    use super::{PyCalcType, PyJobFlow};
+    use super::PyJobFlow;
 
     #[pymodule_export]
-    use super::job::{PyJob, PyJobEdge, PyJobId, PyJobSpec, PyProgram};
+    use super::job::{PyCalcType, PyJob, PyJobEdge, PyJobId, PyJobSpec, PyProgram};
 
     #[pymodule_export]
     use super::status::{PyJobLifecycleStatus, PyStatusEntry};

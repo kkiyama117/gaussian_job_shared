@@ -1,13 +1,13 @@
 //! Workflow tier — DAG-shaped job flow that *uses* SLURM submission types but
 //! is itself a flow concept (not a SLURM internal). Holds the workflow node
-//! (`Job` / `JobSpec` / `JobEdge` / `JobId` / `Program`), the lifecycle status
-//! (`JobLifecycleStatus` / `StatusEntry`), and the top-level container
-//! (`JobFlow` / `CalcType`).
+//! (`Job` / `JobSpec` / `JobEdge` / `JobId` / `Program` / `CalcType`), the
+//! lifecycle status (`JobLifecycleStatus` / `StatusEntry`), and the top-level
+//! container (`JobFlow`).
 //!
 //! See `docs/superpowers/specs/2026-05-08-slurm-job-flow-structs-design.md`.
 
 pub mod job;
-pub use job::{Job, JobEdge, JobId, JobSpec, Program};
+pub use job::{CalcType, Job, JobEdge, JobId, JobSpec, Program};
 
 pub mod status;
 pub use status::{JobLifecycleStatus, StatusEntry};
@@ -18,31 +18,6 @@ use std::path::PathBuf;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-/// Calculation type — describes the overall purpose of a `JobFlow`
-/// (e.g. "opt", "freq", "opt+td"). Stage-level kinds are intentionally
-/// not modelled here (see spec §11 for the deferred decision).
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct CalcType(pub String);
-
-impl std::fmt::Display for CalcType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-
-impl From<String> for CalcType {
-    fn from(s: String) -> Self {
-        Self(s)
-    }
-}
-
-impl From<&str> for CalcType {
-    fn from(s: &str) -> Self {
-        Self(s.to_string())
-    }
-}
 
 /// Top-level job-flow unit. See spec §5.1.
 ///
@@ -55,9 +30,6 @@ impl From<&str> for CalcType {
 pub struct JobFlow {
     /// UUID v7 — identifier of this logical job-flow unit.
     pub uuid: Uuid,
-
-    /// Calculation type ("opt", "freq", "opt+td", ...).
-    pub calc_type: CalcType,
 
     /// Creation timestamp (UTC).
     pub created_at: DateTime<Utc>,
@@ -132,7 +104,6 @@ mod tests {
     fn empty_flow() -> JobFlow {
         JobFlow {
             uuid: Uuid::nil(),
-            calc_type: CalcType::from("opt"),
             created_at: Utc.with_ymd_and_hms(2026, 5, 8, 0, 0, 0).unwrap(),
             work_dir: PathBuf::from("/tmp/flow"),
             tags: BTreeMap::new(),
@@ -146,7 +117,6 @@ mod tests {
         let s = toml::to_string(&flow).unwrap();
         let back: JobFlow = toml::from_str(&s).unwrap();
         assert_eq!(back.jobs.len(), 0);
-        assert_eq!(back.calc_type, flow.calc_type);
         assert_eq!(back.uuid, flow.uuid);
         assert_eq!(back.work_dir, flow.work_dir);
     }
@@ -206,7 +176,6 @@ mod tests {
         // Two [jobs.g16] sections is a TOML duplicate-key error.
         let bad = r#"
 uuid = "00000000-0000-0000-0000-000000000000"
-calc_type = "opt"
 created_at = 2026-05-08T00:00:00Z
 work_dir = "/tmp/flow"
 tags = {}

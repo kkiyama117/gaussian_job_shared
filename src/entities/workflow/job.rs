@@ -6,6 +6,30 @@ use serde::{Deserialize, Serialize};
 
 use crate::entities::slurm::DependencyType;
 
+/// Calculation type — describes the overall purpose of a `JobFlow`
+/// (e.g. "opt", "freq", "opt+td").
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct CalcType(pub String);
+
+impl std::fmt::Display for CalcType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl From<String> for CalcType {
+    fn from(s: String) -> Self {
+        Self(s)
+    }
+}
+
+impl From<&str> for CalcType {
+    fn from(s: &str) -> Self {
+        Self(s.to_string())
+    }
+}
+
 /// Stable ID of a `Job` within a `JobFlow`. Used as the map key in
 /// `JobFlow.jobs: BTreeMap<JobId, Job>` and as bash-filename / log-prefix
 /// stem. Derives `Ord` because it is a `BTreeMap` key.

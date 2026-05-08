@@ -76,10 +76,6 @@ class JobFlow:
     @uuid.setter
     def uuid(self, value: builtins.str) -> None: ...
     @property
-    def calc_type(self) -> CalcType: ...
-    @calc_type.setter
-    def calc_type(self, value: CalcType) -> None: ...
-    @property
     def created_at(self) -> datetime.datetime: ...
     @created_at.setter
     def created_at(self, value: datetime.datetime) -> None: ...
@@ -100,7 +96,7 @@ class JobFlow:
         """
     @jobs.setter
     def jobs(self, value: typing.Mapping[builtins.str, Job]) -> None: ...
-    def __new__(cls, uuid: builtins.str, calc_type: CalcType, created_at: datetime.datetime, work_dir: builtins.str | os.PathLike | pathlib.Path, tags: typing.Mapping[builtins.str, builtins.str] = {}, jobs: typing.Mapping[builtins.str, Job] = {}) -> JobFlow:
+    def __new__(cls, uuid: builtins.str, created_at: datetime.datetime, work_dir: builtins.str | os.PathLike | pathlib.Path, tags: typing.Mapping[builtins.str, builtins.str] = {}, jobs: typing.Mapping[builtins.str, Job] = {}) -> JobFlow:
         r"""
         Build a `JobFlow`. `uuid` accepts the canonical hyphenated string form
         (e.g. `"01997cdc-…"`). To generate a fresh UUID v7, call

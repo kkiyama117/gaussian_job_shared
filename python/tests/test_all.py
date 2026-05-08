@@ -246,7 +246,6 @@ def test_job_flow_g16_post_pair():
     """Mirrors §1.1 of the slurm-job-flow-structs spec."""
     flow = JobFlow(
         uuid=JobFlow.new_uuid(),
-        calc_type=CalcType("opt"),
         created_at=datetime(2026, 5, 8, tzinfo=timezone.utc),
         work_dir="/tmp/flow-pyffi",
     )
@@ -275,7 +274,6 @@ def test_job_flow_g16_post_pair():
 def test_job_flow_uuid_setter_validates():
     flow = JobFlow(
         uuid=JobFlow.new_uuid(),
-        calc_type=CalcType("opt"),
         created_at=datetime(2026, 5, 8, tzinfo=timezone.utc),
         work_dir="/tmp/flow",
     )
