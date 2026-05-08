@@ -1,6 +1,8 @@
 //! Entities that represents slurm Job and JobConfig
 //! For detail, see [Kyoto Univ doc](https://web.kudpc.kyoto-u.ac.jp/manual/ja/run/batch#slurm) and [Official SLURM page](https://slurm.schedmd.com/sbatch.html)
 
+pub mod job;
+
 pub mod array_spec;
 
 pub mod dependency;
