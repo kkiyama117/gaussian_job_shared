@@ -25,12 +25,14 @@ The data model must:
 |------------------------------------------|------------|
 | Identity / lineage / experiment grouping | `JobFlow`  |
 | Tags                                     | `JobFlow`  |
-| DAG topology of stages                   | `JobFlow.jobs` + `Job.parents` |
+| Set of Jobs (DAG nodes)                  | `JobFlow.jobs` |
+| Intra-flow edges (DAG edges)             | `JobFlow.edges` |
 | Calculation type (overall flow purpose)  | `JobFlow.calc_type` |
 | Program executed in this stage           | `Job`      |
 | Slurm submission directives              | `Job.config` |
 | Bash script body                         | `Job.body` |
-| Per-Job parents (intra-flow edges)       | `Job.parents` |
+
+**Why edges live in `JobFlow`, not in `Job`:** edges are a property of the *graph*, not of a node. `JobIdx` only makes sense inside a `JobFlow`, so storing `JobEdge` on `Job` would couple a `Job` to a specific enclosing flow. Holding `edges: Vec<JobEdge>` on `JobFlow` keeps `Job` self-contained (cloneable / movable across flows) and makes DAG validation / cycle detection a single-struct concern.
 
 ## 2. Non-Goals
 
@@ -52,8 +54,8 @@ The following are explicitly **out of scope** of this PR:
 | `Compounds`                                                    | Out of scope — `gaussian16::Compounds` (program-side)    |
 | `CalcParams` / `GaussianParams`                                | Out of scope — `gaussian16::JobParams` (program-side)    |
 | `CalcBlock.slurm_jobid` / `post_jobid`                         | Out of scope — runtime IDs not modelled here             |
-| `PlannedStep`                                                  | `JobFlow` + `Vec<Job>` collectively                      |
-| Implicit `(g16, post)` pair                                    | `Job` × 2 with one `JobEdge` (post → main, Afterok)      |
+| `PlannedStep`                                                  | `JobFlow` + `Vec<Job>` + `Vec<JobEdge>` collectively     |
+| Implicit `(g16, post)` pair                                    | `Job` × 2 with one `JobEdge { from: g16, to: post, kind: Afterok }` |
 | `_StepSubmitter.submit_step`                                   | Out of scope — TaskManager responsibility                |
 | `Status` (queued/running/done/failed)                          | `JobLifecycleStatus` (independent type, not embedded)    |
 | `StatusEntry` (status + transitioned_at)                       | `StatusEntry` (matches Python's shape)                   |
@@ -63,25 +65,26 @@ The following are explicitly **out of scope** of this PR:
 ## 4. Architecture
 
 ```
-[ JobFlow ]                  ── 1 logical job-flow unit (uuid + jobs DAG)
+[ JobFlow ]                  ── 1 logical job-flow unit (uuid + DAG)
    ├── identity:
    │     uuid / calc_type / created_at
    ├── lineage (cross-flow):
    │     parent_uuids / experiment_id
    ├── shared metadata:
    │     tags
-   └── jobs: Vec<Job>                    ── all Jobs in the flow
+   ├── jobs:  Vec<Job>                   ── DAG nodes
+   └── edges: Vec<JobEdge>               ── DAG edges (intra-flow)
 
-[ Job ]                      ── 1 bash file = 1 sbatch unit
+[ Job ]                      ── 1 bash file = 1 sbatch unit (self-contained)
    ├── name:    Option<String>           ── label like "g16", "post"
    ├── program: Program                  ── what this stage runs (e.g. "g16", "formchk")
-   ├── parents: Vec<JobEdge>             ── intra-flow DAG (empty = root)
    ├── config:  SlurmJobConfig           ── existing type (TaskManager-merged)
    └── body:    String                    ── bash body text
 
 [ JobEdge ]
-   ├── parent: JobIdx                    ── index into JobFlow.jobs
-   └── kind:   DependencyType            ── existing enum (Afterok / ...)
+   ├── from: JobIdx                      ── parent (index into JobFlow.jobs)
+   ├── to:   JobIdx                      ── child  (index into JobFlow.jobs)
+   └── kind: DependencyType              ── existing enum (Afterok / ...)
 
 [ JobIdx ] = newtype around usize
 
@@ -118,8 +121,13 @@ pub struct JobFlow {
     pub tags: BTreeMap<String, String>,
 
     /// The Jobs in the flow (DAG nodes). Index into this Vec is the
-    /// `JobIdx` referenced by `JobEdge.parent`.
+    /// `JobIdx` referenced by `JobEdge.from` / `JobEdge.to`.
     pub jobs: Vec<Job>,
+
+    /// Intra-flow dependency edges (DAG edges).
+    /// Empty for single-Job flows. Each edge says "after `from` finishes
+    /// (per `kind`), `to` may start". Direction is parent → child.
+    pub edges: Vec<JobEdge>,
 }
 
 pub struct CalcType(pub String);
@@ -145,10 +153,6 @@ pub struct Job {
     /// "gaussview", program-specific analyzers). Newtype around String.
     pub program: Program,
 
-    /// Intra-flow dependency edges. Empty = root. Multiple entries =
-    /// this Job depends on multiple parents (DAG join node).
-    pub parents: Vec<JobEdge>,
-
     /// Slurm submission directives. TaskManager produces this by
     /// merging cluster-wide defaults with per-job overrides — by the
     /// time it lands in Job it is already complete.
@@ -161,8 +165,11 @@ pub struct Job {
 }
 
 pub struct JobEdge {
-    /// Index into the enclosing `JobFlow.jobs`.
-    pub parent: JobIdx,
+    /// Parent (predecessor) — index into `JobFlow.jobs`.
+    pub from: JobIdx,
+
+    /// Child (successor) — index into `JobFlow.jobs`.
+    pub to: JobIdx,
 
     /// Dependency type (Afterok / Afterany / After / ...).
     /// Reuses the existing enum from `entities::slurm::dependency`.
@@ -175,9 +182,10 @@ pub struct Program(pub String);
 ```
 
 **Notes:**
+- `Job` is **self-contained**: it carries no reference to its enclosing flow. The set of edges incident to a Job is owned by the enclosing `JobFlow.edges` (helper methods like `JobFlow::parents_of(idx) -> impl Iterator<&JobEdge>` will be added with TaskManager — out of scope here).
 - `Program` lives in this module (alongside `Job`) because it is a per-Job concern. `Display` and `From<String> / FromStr` are implemented.
 - `JobEdge` does **not** carry a `delay_minutes` field. The existing `DependencyJobRef` supports it for `After`-typed clauses; this is left out of the intra-flow edge for simplicity and added later if needed.
-- The relationship to `SlurmJobConfig.dependency` (which references concrete jobids): `JobEdge` is the *logical* intra-flow dependency. After the parent is submitted, TaskManager resolves each `JobEdge` into a `SlurmDependency` clause and merges it into the child's `config.dependency`. Both can coexist (e.g., one cross-flow dependency on a parent JobFlow's last Job + one intra-flow dependency on a sibling Job).
+- The relationship to `SlurmJobConfig.dependency` (which references concrete jobids): `JobEdge` is the *logical* intra-flow dependency. After the parent is submitted, TaskManager resolves edges with `to == this_job` into `SlurmDependency` clauses and merges them into the child's `config.dependency`. Both can coexist (e.g., one cross-flow dependency on a parent JobFlow's last Job + one intra-flow dependency on a sibling Job).
 - `body` as plain `String` is intentional — most env-setup boilerplate (shebang, `set -euo pipefail`, conda cleanup, module restore, conda activate) is treated as a fixed string template applied by TaskManager. The program-specific main command portion is owned by the program-specific module (e.g., `gaussian16`).
 
 ### 5.3 `JobLifecycleStatus` / `StatusEntry` (new — `src/entities/slurm/status.rs`)
@@ -250,8 +258,9 @@ pub use job_flow::{CalcType, ExperimentId, JobFlow};
 
 Validation is **not** enforced by these types in this PR. The following invariants are left to a future TaskManager layer:
 
-- `JobEdge.parent` indices are within `JobFlow.jobs.len()`
-- The intra-flow Job graph is acyclic
+- `JobEdge.from` and `JobEdge.to` are both within `0..JobFlow.jobs.len()`
+- `JobEdge.from != JobEdge.to` (no self-loop)
+- The intra-flow Job graph (`jobs` × `edges`) is acyclic
 - `parent_uuids` does not contain `uuid` (no self-reference in cross-flow)
 - `Program` / `CalcType` non-empty after trim
 - `name` non-empty after trim when present
@@ -264,7 +273,8 @@ Unit tests (in each new file) cover:
 
 - `JobFlow` round-trip TOML serialize/deserialize with each field varying
 - `JobFlow` with empty `jobs`, multiple `jobs`, multiple `parent_uuids`
-- `Job` with `parents = []` (root), `parents.len() > 1` (DAG join), and varying `program`
+- `JobFlow` with `edges = []` (single-Job flow), one edge (g16→post), and a DAG join (two parents → one child)
+- `Job` round-trip TOML with varying `program`
 - `JobEdge` round-trip TOML for each `DependencyType` variant
 - `JobLifecycleStatus` round-trip TOML lowercase mapping
 - `StatusEntry` round-trip TOML with timezone-aware `DateTime<Utc>`
