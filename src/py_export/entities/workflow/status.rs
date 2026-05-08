@@ -329,6 +329,8 @@ impl From<PyJobLifecycleStatus> for inner::JobLifecycleStatus {
 
 // ============================================================ StatusEntry
 
+// StatusEntry intentionally omits `frozen`/`hash`: it has setters
+// (set_status, set_transitioned_at) so it cannot be hashable.
 #[gen_stub_pyclass]
 #[pyclass(
     name = "StatusEntry",
