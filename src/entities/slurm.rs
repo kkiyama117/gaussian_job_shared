@@ -4,6 +4,9 @@
 pub mod job;
 pub use job::{Job, JobEdge, JobId, JobSpec, Program};
 
+pub mod status;
+pub use status::{JobLifecycleStatus, StatusEntry};
+
 pub mod array_spec;
 
 pub mod dependency;
