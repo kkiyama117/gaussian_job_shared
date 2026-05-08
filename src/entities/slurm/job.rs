@@ -111,6 +111,26 @@ pub struct JobSpec {
     pub body: String,
 }
 
+/// LARGE tier: a `JobSpec` placed in a `JobFlow`.
+/// Identified positionally by its key in `JobFlow.jobs: BTreeMap<JobId, Job>`
+/// — there is *no* `id` field on `Job` itself.
+///
+/// Designed as the future home for runtime state added by the TaskManager PR
+/// (`slurm_jobid: Option<SlurmJobId>`, `status_history: Vec<StatusEntry>`,
+/// `started_at` / `finished_at`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Job {
+    /// Pure work definition. `#[serde(flatten)]` so program/config/body
+    /// appear as siblings of `parents` in TOML — no `[spec]` nesting.
+    #[serde(flatten)]
+    pub spec: JobSpec,
+
+    /// Incoming dependency edges. Empty = root.
+    #[serde(default)]
+    pub parents: Vec<JobEdge>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -243,5 +263,96 @@ mod tests {
         let copy = original.clone();
         assert_eq!(copy.program, original.program);
         assert_eq!(copy.body, original.body);
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct JobHolder {
+        job: Job,
+    }
+
+    #[test]
+    fn job_no_id_field_flatten_produces_flat_toml() {
+        // Verifies: there is NO `[job.spec]` nesting — flatten makes
+        // program/config/body siblings of parents.
+        let h = JobHolder {
+            job: Job {
+                spec: JobSpec {
+                    program: Program::from("g16"),
+                    config: sample_config(),
+                    body: "echo hi\n".to_string(),
+                },
+                parents: vec![],
+            },
+        };
+        let s = toml::to_string(&h).unwrap();
+        assert!(s.contains("program = \"g16\""), "actual TOML: {s}");
+        assert!(
+            !s.contains("[job.spec]"),
+            "spec wrapper leaked into TOML: {s}"
+        );
+    }
+
+    #[test]
+    fn job_root_has_empty_parents() {
+        let h = JobHolder {
+            job: Job {
+                spec: JobSpec {
+                    program: Program::from("g16"),
+                    config: sample_config(),
+                    body: String::new(),
+                },
+                parents: vec![],
+            },
+        };
+        let s = toml::to_string(&h).unwrap();
+        let back: JobHolder = toml::from_str(&s).unwrap();
+        assert!(back.job.parents.is_empty());
+    }
+
+    #[test]
+    fn job_with_one_parent() {
+        let h = JobHolder {
+            job: Job {
+                spec: JobSpec {
+                    program: Program::from("formchk"),
+                    config: sample_config(),
+                    body: String::new(),
+                },
+                parents: vec![JobEdge {
+                    from: JobId::from("g16"),
+                    kind: DependencyType::AfterOk,
+                }],
+            },
+        };
+        let s = toml::to_string(&h).unwrap();
+        let back: JobHolder = toml::from_str(&s).unwrap();
+        assert_eq!(back.job.parents.len(), 1);
+        assert_eq!(back.job.parents[0].from, JobId::from("g16"));
+    }
+
+    #[test]
+    fn job_with_dag_join_two_parents() {
+        let h = JobHolder {
+            job: Job {
+                spec: JobSpec {
+                    program: Program::from("merge"),
+                    config: sample_config(),
+                    body: String::new(),
+                },
+                parents: vec![
+                    JobEdge {
+                        from: JobId::from("branch_a"),
+                        kind: DependencyType::AfterOk,
+                    },
+                    JobEdge {
+                        from: JobId::from("branch_b"),
+                        kind: DependencyType::AfterOk,
+                    },
+                ],
+            },
+        };
+        let s = toml::to_string(&h).unwrap();
+        let back: JobHolder = toml::from_str(&s).unwrap();
+        assert_eq!(back.job.parents.len(), 2);
     }
 }
