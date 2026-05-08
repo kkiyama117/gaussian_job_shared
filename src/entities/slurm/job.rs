@@ -93,6 +93,24 @@ mod dep_kind_serde {
     }
 }
 
+/// SMALL tier: state-independent / pre-runtime work definition.
+/// Reusable across flows — carries no flow-scoped or runtime state.
+/// See `docs/superpowers/specs/2026-05-08-slurm-job-flow-structs-design.md` §5.2.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct JobSpec {
+    /// Program identifier this stage runs.
+    pub program: Program,
+
+    /// Slurm submission directives. TaskManager produces this by merging
+    /// cluster-wide defaults with per-job overrides — by the time it
+    /// lands in `JobSpec` it is already complete.
+    pub config: super::SlurmJobConfig,
+
+    /// Bash script body (text *after* the `#SBATCH` directive block).
+    pub body: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -170,5 +188,60 @@ mod tests {
         let s = toml::to_string(&h).unwrap();
         let back: EdgeHolder = toml::from_str(&s).unwrap();
         assert_eq!(back, h);
+    }
+
+    use super::super::SlurmJobConfig;
+
+    fn sample_config() -> SlurmJobConfig {
+        SlurmJobConfig {
+            partition: "long".to_string(),
+            time_limit: None,
+            log_stdout: None,
+            log_stderr: None,
+            comment: None,
+            job_name: None,
+            array_spec: None,
+            dependency: None,
+            mail_user: None,
+            mail_types: None,
+            resource_spec: None,
+        }
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct SpecHolder {
+        spec: JobSpec,
+    }
+
+    #[test]
+    fn job_spec_toml_roundtrip_field_by_field() {
+        // SlurmJobConfig does not derive PartialEq, so we compare each
+        // field individually rather than the whole struct.
+        let h = SpecHolder {
+            spec: JobSpec {
+                program: Program::from("g16"),
+                config: sample_config(),
+                body: "g16 < input.gjf > output.log\n".to_string(),
+            },
+        };
+        let s = toml::to_string(&h).unwrap();
+        let back: SpecHolder = toml::from_str(&s).unwrap();
+        assert_eq!(back.spec.program, h.spec.program);
+        assert_eq!(back.spec.config.partition, h.spec.config.partition);
+        assert_eq!(back.spec.body, h.spec.body);
+    }
+
+    #[test]
+    fn job_spec_is_state_independent_can_be_cloned() {
+        // Sanity: JobSpec carries no flow-scoped reference and can be
+        // freely cloned. Compile-time check via .clone().
+        let original = JobSpec {
+            program: Program::from("g16"),
+            config: sample_config(),
+            body: "echo hi\n".to_string(),
+        };
+        let copy = original.clone();
+        assert_eq!(copy.program, original.program);
+        assert_eq!(copy.body, original.body);
     }
 }
