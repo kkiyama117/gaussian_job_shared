@@ -6,8 +6,8 @@ use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 
 use crate::entities::workflow as inner;
 
-use crate::py_export::entities::slurm::config::PySlurmJobConfig;
-use crate::py_export::entities::slurm::dependency::PyDependencyType;
+use crate::py_export::entities::slurm::sbatch_options::config::PySlurmJobConfig;
+use crate::py_export::entities::slurm::sbatch_options::dependency::PyDependencyType;
 
 // ----------------------------------------------------------------- CalcType
 #[gen_stub_pyclass]

@@ -1,12 +1,16 @@
-//! Python-facing wrappers for `crate::entities::slurm::*` (sbatch primitives
-//! and the [`PySlurmJobConfig`] envelope). Workflow types (`PyJob`,
-//! `PyJobLifecycleStatus`, etc.) live under `crate::py_export::entities::workflow`.
+//! Python-facing wrappers for `crate::entities::slurm::*`.
+//!
+//! Two sub-modules are exposed at `gaussian_job_shared._core.entities.slurm`:
+//!
+//! - [`sbatch_options`] — sbatch directive primitives and the
+//!   [`sbatch_options::config::PySlurmJobConfig`] envelope. Available
+//!   at `gaussian_job_shared._core.entities.slurm.sbatch_options`.
+//! - [`status`] — runtime job status (`PyJobStatus`, `PyJobState`,
+//!   `PyJobReason`). Available at
+//!   `gaussian_job_shared._core.entities.slurm.status`.
 
-pub mod array_spec;
-pub mod config;
-pub mod dependency;
-pub mod resource_spec;
-pub mod time_limit;
+pub mod sbatch_options;
+pub mod status;
 
 use pyo3::prelude::*;
 
@@ -17,24 +21,10 @@ pub(crate) mod inner_module {
     const PYTHON_MODULE_NAME: &str = "gaussian_job_shared._core.entities.slurm";
 
     #[pymodule_export]
-    use super::dependency::{
-        PyDependencyClause, PyDependencyJobRef, PyDependencyJoin, PyDependencyType,
-        PySlurmDependency,
-    };
+    use super::sbatch_options::inner_module as sbatch_options_module;
 
     #[pymodule_export]
-    use super::array_spec::{PyArrayIndex, PySlurmArraySpec};
-
-    #[pymodule_export]
-    use super::resource_spec::{
-        PyMemory, PyMemoryUnit, PyResourceSpec, PyResourceSpecCPU, PyResourceSpecGPU,
-    };
-
-    #[pymodule_export]
-    use super::time_limit::PyJobTimeLimit;
-
-    #[pymodule_export]
-    use super::config::{PyMailType, PyMailTypeInput, PySlurmJobConfig};
+    use super::status::inner_module as status_module;
 
     #[pymodule_init]
     fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {

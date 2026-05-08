@@ -1,16 +1,15 @@
 //! Workflow tier — DAG-shaped job flow that *uses* SLURM submission types but
 //! is itself a flow concept (not a SLURM internal). Holds the workflow node
-//! (`Job` / `JobSpec` / `JobEdge` / `JobId` / `Program` / `CalcType`), the
-//! lifecycle status (`JobLifecycleStatus` / `StatusEntry`), and the top-level
-//! container (`JobFlow`).
+//! (`Job` / `JobSpec` / `JobEdge` / `JobId` / `Program` / `CalcType`) and
+//! the top-level container (`JobFlow`). The runtime lifecycle status
+//! (`JobStatus` / `JobState` / `JobReason`) lives under
+//! [`crate::entities::slurm::status`] since it mirrors SLURM's own
+//! `(state, reason)` pair.
 //!
 //! See `docs/superpowers/specs/2026-05-08-slurm-job-flow-structs-design.md`.
 
 pub mod job;
 pub use job::{CalcType, Job, JobEdge, JobId, JobSpec, Program};
-
-pub mod status;
-pub use status::{JobLifecycleStatus, StatusEntry};
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;

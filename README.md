@@ -8,8 +8,10 @@ GAUSSIANジョブパイプラインの共有データ型ライブラリ。京都
 
 `entities` は **2 つの階層**で整理されています:
 
-- `entities::workflow` — フロー視点 (DAG ノード / ライフサイクル状態 / フロー全体)。SLURM 内部の概念とは別
-- `entities::slurm` — sbatch ディレクティブ素材と `SlurmJobConfig` エンベロープ。
+- `entities::workflow` — フロー視点 (DAG ノード / フロー全体)。SLURM 内部の概念とは別
+- `entities::slurm` — SLURM 視点。さらに 2 つのサブモジュールに分かれる:
+  - `entities::slurm::sbatch_options` — sbatch ディレクティブ素材と `SlurmJobConfig` エンベロープ
+  - `entities::slurm::status` — ランタイム状態 (`JobStatus` / `JobState` / `JobReason`)
 
 ### `entities::workflow`
 
@@ -18,20 +20,30 @@ GAUSSIANジョブパイプラインの共有データ型ライブラリ。京都
 | 型 | 役割 |
 |----|------|
 | `JobFlow` | 1 つの論理ジョブフロー単位 (UUID v7, `created_at`, `work_dir`, `tags`, `jobs: BTreeMap<JobId, Job>`)。`BTreeMap` の構造自体が `JobId` の一意性とソート順を担保 |
-| `Job` | フロー内に置かれた `JobSpec` + 入辺 (`parents: Vec<JobEdge>`)。将来の実行時状態 (`slurm_jobid` / `status_history` 等) の拡張点 |
+| `Job` | フロー内に置かれた `JobSpec` + 入辺 (`parents: Vec<JobEdge>`)。将来の実行時状態 (`slurm_jobid` / `status: Option<JobStatus>` 等) の拡張点 |
 | `JobSpec` | `program` + `config: SlurmJobConfig` + `body` (bash 本文)。フロー非依存で複数フロー間で再利用可能 |
 | `JobId` / `Program` / `CalcType` | 透過 (`#[serde(transparent)]`) ニュータイプ |
 | `JobEdge` | `Job.parents` に積む入辺。`from: JobId` + `kind: DependencyType` (afterok / afterany / after / …) |
-| `JobLifecycleStatus` | `queued` / `running` / `done` / `failed` — status of job|
-| `StatusEntry` | `(status, transitioned_at: DateTime<Utc>)` のペア |
 
-### `entities::slurm` (SLURM 用フィールド型)
+### `entities::slurm::sbatch_options` (SLURM 用フィールド型)
 
 - `SlurmJobConfig` — `partition` / `time_limit` / `log_stdout` / `log_stderr` / `comment` / `job_name` / `array_spec` / `dependency` / `mail_user` / `mail_types` / `resource_spec`
 - `JobTimeLimit` — `--time` の 6 種表記 (`M`, `M:S`, `H:M:S`, `D-H`, `D-H:M`, `D-H:M:S`) を受け、常に `HH:MM:SS` で再シリアライズ
 - `ResourceSpec` (`p=…:t=…:c=…:m=…` / `g=…`) — 京大スパコンの `--rsc` 形式
 - `SlurmDependency` (`afterok:…`, `afterany:…` 等) と `SlurmArraySpec` (`--array=0-9%2` 等)
 - `MailType` / `MailTypeInput`
+
+### `entities::slurm::status` (SLURM ランタイム状態)
+
+`squeue %T %r` / `sacct %State %Reason` の `(state, reason)` ペアを忠実にミラー:
+
+| 型 | 役割 |
+|----|------|
+| `JobStatus` | `{ state: JobState, reason: JobReason }` のペア。1 行の `squeue` 出力に対応 |
+| `JobState` | 24 公式 SLURM ジョブ状態コード (`Pending`, `Running`, `Completed`, `Failed`, `OutOfMemory`, …) + `Unknown` センチネル。flat enum |
+| `JobReason` | SLURM `slurm_reason_string` テーブル全カバー (`None`, `Priority`, `Resources`, `Dependency`, `TimeLimit`, …) + `Other(String)` フォールバック |
+
+`entities::slurm` トップレベルからは `pub use` で `SlurmJobConfig` / `JobStatus` / `JobState` / `JobReason` 等を再エクスポートしているため、`gaussian_job_shared::entities::slurm::SlurmJobConfig` のような既存パスはそのまま動きます。
 
 ### `error`
 

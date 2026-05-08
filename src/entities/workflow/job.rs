@@ -140,7 +140,7 @@ pub struct JobSpec {
 /// — there is *no* `id` field on `Job` itself.
 ///
 /// Designed as the future home for runtime state added by the TaskManager PR
-/// (`slurm_jobid: Option<SlurmJobId>`, `status_history: Vec<StatusEntry>`,
+/// (`slurm_jobid: Option<SlurmJobId>`, `status: Option<JobStatus>`,
 /// `started_at` / `finished_at`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
