@@ -1,5 +1,6 @@
 #![cfg(feature = "pyo3")]
 
+pub mod entities;
 pub mod error;
 
 use pyo3::prelude::*;
@@ -14,6 +15,10 @@ mod gaussian_job_shared {
     // TODO: constcat const PYTHON_LIBRARY_NAME: &str = "gaussian_job_shared";
     const PYTHON_MODULE_NAME: &str = "gaussian_job_shared._core";
 
+    #[pymodule_export]
+    use super::entities::inner_module;
+
+    // ---- legacy demo function ----
     #[pymodule_export]
     use crate::py_export::sum_as_string;
 

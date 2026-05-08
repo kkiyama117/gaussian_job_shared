@@ -2,7 +2,9 @@
 # ruff: noqa: E501, F401, F403, F405
 
 import builtins
+from . import entities
 __all__ = [
+    "entities",
     "sum_as_string",
 ]
 
