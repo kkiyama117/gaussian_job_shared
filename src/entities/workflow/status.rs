@@ -37,6 +37,22 @@ pub enum QueuedKind {
     Stopped,
 }
 
+impl QueuedKind {
+    /// SLURM long-form token for this sub-state.
+    pub fn as_token(&self) -> &'static str {
+        match self {
+            Self::Pending => "PENDING",
+            Self::Configuring => "CONFIGURING",
+            Self::Requeued => "REQUEUED",
+            Self::RequeueFed => "REQUEUE_FED",
+            Self::RequeueHold => "REQUEUE_HOLD",
+            Self::ResvDelHold => "RESV_DEL_HOLD",
+            Self::Suspended => "SUSPENDED",
+            Self::Stopped => "STOPPED",
+        }
+    }
+}
+
 /// SLURM "alive" sub-states (RUNNING, COMPLETING, RESIZING, SIGNALING,
 /// STAGE_OUT). See spec §3.2.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -46,6 +62,19 @@ pub enum RunningKind {
     Resizing,
     Signaling,
     StageOut,
+}
+
+impl RunningKind {
+    /// SLURM long-form token for this sub-state.
+    pub fn as_token(&self) -> &'static str {
+        match self {
+            Self::Running => "RUNNING",
+            Self::Completing => "COMPLETING",
+            Self::Resizing => "RESIZING",
+            Self::Signaling => "SIGNALING",
+            Self::StageOut => "STAGE_OUT",
+        }
+    }
 }
 
 /// SLURM terminal-failure sub-states (BOOT_FAIL, CANCELLED, DEADLINE,
@@ -63,6 +92,24 @@ pub enum FailureKind {
     Revoked,
     SpecialExit,
     Timeout,
+}
+
+impl FailureKind {
+    /// SLURM long-form token for this sub-state.
+    pub fn as_token(&self) -> &'static str {
+        match self {
+            Self::BootFail => "BOOT_FAIL",
+            Self::Cancelled => "CANCELLED",
+            Self::Deadline => "DEADLINE",
+            Self::Failed => "FAILED",
+            Self::NodeFail => "NODE_FAIL",
+            Self::OutOfMemory => "OUT_OF_MEMORY",
+            Self::Preempted => "PREEMPTED",
+            Self::Revoked => "REVOKED",
+            Self::SpecialExit => "SPECIAL_EXIT",
+            Self::Timeout => "TIMEOUT",
+        }
+    }
 }
 
 impl JobLifecycleStatus {
@@ -121,34 +168,10 @@ impl JobLifecycleStatus {
     /// round-trips for every variant (excluding compact-code aliases).
     pub fn as_token(&self) -> &'static str {
         match self {
-            Self::Queued(QueuedKind::Pending) => "PENDING",
-            Self::Queued(QueuedKind::Configuring) => "CONFIGURING",
-            Self::Queued(QueuedKind::Requeued) => "REQUEUED",
-            Self::Queued(QueuedKind::RequeueFed) => "REQUEUE_FED",
-            Self::Queued(QueuedKind::RequeueHold) => "REQUEUE_HOLD",
-            Self::Queued(QueuedKind::ResvDelHold) => "RESV_DEL_HOLD",
-            Self::Queued(QueuedKind::Suspended) => "SUSPENDED",
-            Self::Queued(QueuedKind::Stopped) => "STOPPED",
-
-            Self::Running(RunningKind::Running) => "RUNNING",
-            Self::Running(RunningKind::Completing) => "COMPLETING",
-            Self::Running(RunningKind::Resizing) => "RESIZING",
-            Self::Running(RunningKind::Signaling) => "SIGNALING",
-            Self::Running(RunningKind::StageOut) => "STAGE_OUT",
-
+            Self::Queued(k) => k.as_token(),
+            Self::Running(k) => k.as_token(),
             Self::Done => "COMPLETED",
-
-            Self::Failed(FailureKind::BootFail) => "BOOT_FAIL",
-            Self::Failed(FailureKind::Cancelled) => "CANCELLED",
-            Self::Failed(FailureKind::Deadline) => "DEADLINE",
-            Self::Failed(FailureKind::Failed) => "FAILED",
-            Self::Failed(FailureKind::NodeFail) => "NODE_FAIL",
-            Self::Failed(FailureKind::OutOfMemory) => "OUT_OF_MEMORY",
-            Self::Failed(FailureKind::Preempted) => "PREEMPTED",
-            Self::Failed(FailureKind::Revoked) => "REVOKED",
-            Self::Failed(FailureKind::SpecialExit) => "SPECIAL_EXIT",
-            Self::Failed(FailureKind::Timeout) => "TIMEOUT",
-
+            Self::Failed(k) => k.as_token(),
             Self::Unknown => "UNKNOWN",
         }
     }

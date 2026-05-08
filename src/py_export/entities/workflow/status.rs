@@ -39,7 +39,7 @@ pub enum PyQueuedKind {
 #[pymethods]
 impl PyQueuedKind {
     fn __str__(&self) -> &'static str {
-        inner::JobLifecycleStatus::Queued((*self).into()).as_token()
+        inner::QueuedKind::from(*self).as_token()
     }
 
     fn __repr__(&self) -> String {
@@ -100,7 +100,7 @@ pub enum PyRunningKind {
 #[pymethods]
 impl PyRunningKind {
     fn __str__(&self) -> &'static str {
-        inner::JobLifecycleStatus::Running((*self).into()).as_token()
+        inner::RunningKind::from(*self).as_token()
     }
 
     fn __repr__(&self) -> String {
@@ -160,7 +160,7 @@ pub enum PyFailureKind {
 #[pymethods]
 impl PyFailureKind {
     fn __str__(&self) -> &'static str {
-        inner::JobLifecycleStatus::Failed((*self).into()).as_token()
+        inner::FailureKind::from(*self).as_token()
     }
 
     fn __repr__(&self) -> String {
