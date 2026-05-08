@@ -268,6 +268,48 @@ mod tests {
         assert_eq!(JobLifecycleStatus::parse("CD"), JobLifecycleStatus::Done);
     }
 
+    #[test]
+    fn parse_compact_codes_cover_every_variant() {
+        use JobLifecycleStatus::{Done, Failed, Queued, Running};
+
+        for (code, expected) in [
+            // Queued
+            ("PD", Queued(QueuedKind::Pending)),
+            ("CF", Queued(QueuedKind::Configuring)),
+            ("RQ", Queued(QueuedKind::Requeued)),
+            ("RF", Queued(QueuedKind::RequeueFed)),
+            ("RH", Queued(QueuedKind::RequeueHold)),
+            ("RD", Queued(QueuedKind::ResvDelHold)),
+            ("S", Queued(QueuedKind::Suspended)),
+            ("ST", Queued(QueuedKind::Stopped)),
+            // Running
+            ("R", Running(RunningKind::Running)),
+            ("CG", Running(RunningKind::Completing)),
+            ("RS", Running(RunningKind::Resizing)),
+            ("SI", Running(RunningKind::Signaling)),
+            ("SO", Running(RunningKind::StageOut)),
+            // Done
+            ("CD", Done),
+            // Failed
+            ("BF", Failed(FailureKind::BootFail)),
+            ("CA", Failed(FailureKind::Cancelled)),
+            ("DL", Failed(FailureKind::Deadline)),
+            ("F", Failed(FailureKind::Failed)),
+            ("NF", Failed(FailureKind::NodeFail)),
+            ("OOM", Failed(FailureKind::OutOfMemory)),
+            ("PR", Failed(FailureKind::Preempted)),
+            ("RV", Failed(FailureKind::Revoked)),
+            ("SE", Failed(FailureKind::SpecialExit)),
+            ("TO", Failed(FailureKind::Timeout)),
+        ] {
+            assert_eq!(
+                JobLifecycleStatus::parse(code),
+                expected,
+                "parse({code:?}) did not produce expected variant",
+            );
+        }
+    }
+
     // ---- parse: trailing context, whitespace, case ----
     #[test]
     fn parse_trailing_context_cancelled_by() {
