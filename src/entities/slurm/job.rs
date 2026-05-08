@@ -4,6 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::dependency::DependencyType;
+
 /// Stable ID of a `Job` within a `JobFlow`. Used as the map key in
 /// `JobFlow.jobs: BTreeMap<JobId, Job>` and as bash-filename / log-prefix
 /// stem. Derives `Ord` because it is a `BTreeMap` key.
@@ -53,6 +55,44 @@ impl From<&str> for Program {
     }
 }
 
+/// Intra-flow dependency edge — incoming to the enclosing `Job`.
+/// `to` is implicit (= the map key of the enclosing `JobFlow.jobs` entry).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct JobEdge {
+    /// Parent (predecessor) — key into the enclosing `JobFlow.jobs`.
+    pub from: JobId,
+
+    /// Slurm dependency kind (Afterok / Afterany / After / ...).
+    /// Serialized as the Slurm-canonical lowercase keyword (`afterok`,
+    /// `afterany`, …) via [`dep_kind_serde`] — same form `DependencyType`'s
+    /// own [`std::str::FromStr`] / [`std::fmt::Display`] use, so cross-tool
+    /// TOML stays self-consistent without touching `DependencyType`'s
+    /// derive (which `SlurmDependency` parses through its own custom impl).
+    #[serde(with = "dep_kind_serde")]
+    pub kind: DependencyType,
+}
+
+/// Adapter so `JobEdge` can serde a `DependencyType` even though that enum
+/// has no `derive(Serialize, Deserialize)` of its own. Round-trips through
+/// `Display` / `FromStr` (defined in `super::dependency`).
+mod dep_kind_serde {
+    use std::str::FromStr;
+
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    use super::DependencyType;
+
+    pub fn serialize<S: Serializer>(kind: &DependencyType, ser: S) -> Result<S::Ok, S::Error> {
+        ser.serialize_str(&kind.to_string())
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(de: D) -> Result<DependencyType, D::Error> {
+        let s = String::deserialize(de)?;
+        DependencyType::from_str(&s).map_err(serde::de::Error::custom)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -98,6 +138,37 @@ mod tests {
         let s = toml::to_string(&h).unwrap();
         assert!(s.contains(r#"program = "g16""#), "actual TOML: {s}");
         let back: ProgramHolder = toml::from_str(&s).unwrap();
+        assert_eq!(back, h);
+    }
+
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    struct EdgeHolder {
+        edge: JobEdge,
+    }
+
+    #[test]
+    fn job_edge_toml_roundtrip_afterok() {
+        let h = EdgeHolder {
+            edge: JobEdge {
+                from: JobId::from("g16"),
+                kind: DependencyType::AfterOk,
+            },
+        };
+        let s = toml::to_string(&h).unwrap();
+        let back: EdgeHolder = toml::from_str(&s).unwrap();
+        assert_eq!(back, h);
+    }
+
+    #[test]
+    fn job_edge_toml_roundtrip_after() {
+        let h = EdgeHolder {
+            edge: JobEdge {
+                from: JobId::from("upstream"),
+                kind: DependencyType::After,
+            },
+        };
+        let s = toml::to_string(&h).unwrap();
+        let back: EdgeHolder = toml::from_str(&s).unwrap();
         assert_eq!(back, h);
     }
 }
