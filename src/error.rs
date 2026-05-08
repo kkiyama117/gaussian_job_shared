@@ -1,7 +1,7 @@
 /// Strict schema validation utilities and exception family.
 use thiserror::Error;
 
-/// Toml loaders in [gaussian_job_shared] raise [`StrictSchemaError`] on any
+/// Toml loaders raise [`SchemaParseError`] on any
 /// schema violation. Unknown keys, missing keys, type mismatches, and unknown
 /// discriminator values all surface here.
 #[derive(Debug, Clone, Error)]

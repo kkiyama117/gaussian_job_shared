@@ -28,7 +28,7 @@ use crate::error::SchemaParseError;
 ///   <days>-<hours>:<minutes>:<seconds>
 /// ```
 ///
-/// All six are accepted by [`FromStr`]; [`Display`] always emits the
+/// All six are accepted by [`std::str::FromStr`]; [`std::fmt::Display`] always emits the
 /// canonical `HH:MM:SS` form (the hour field is allowed to exceed 23 — Slurm
 /// itself accepts that).
 ///
