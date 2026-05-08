@@ -34,6 +34,11 @@ python-source = "python"
 [tool.ruff]
 target-version = "py312"
 
+[tool.ruff.lint.per-file-ignores]
+# pyo3-stub-gen output uses forward references in default-value expressions
+# that ruff flags as F821. The file already opts out of F401/F403/F405/E501.
+"**/*.pyi" = ["F821"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["gaussian-job-shared"]
 
