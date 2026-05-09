@@ -150,42 +150,55 @@ pub struct PyResourceSpecCPU(pub inner::ResourceSpecCPU);
 #[gen_stub_pymethods]
 #[pymethods]
 impl PyResourceSpecCPU {
+    /// Construct a fully-specified CPU resource spec — all four of
+    /// (`p`, `t`, `c`, `m`) are required positional arguments.
+    /// For partial specs (e.g. `p=60:t=1:c=1` per the KUDPC manual),
+    /// use [`PyResourceSpec`]'s positional/kwargs constructor instead.
     #[new]
     fn new(p: u32, t: u32, c: u32, m: PyMemory) -> PyResult<Self> {
         let p = NonZeroU32::new(p).ok_or_else(|| PyValueError::new_err("p must be > 0"))?;
         let t = NonZeroU32::new(t).ok_or_else(|| PyValueError::new_err("t must be > 0"))?;
         let c = NonZeroU32::new(c).ok_or_else(|| PyValueError::new_err("c must be > 0"))?;
-        Ok(Self(inner::ResourceSpecCPU { p, t, c, m: m.0 }))
+        Ok(Self(inner::ResourceSpecCPU {
+            p: Some(p),
+            t: Some(t),
+            c: Some(c),
+            m: Some(m.0),
+        }))
     }
 
+    /// Returns `None` if `p` was not specified.
     #[getter]
-    fn p(&self) -> u32 {
-        self.0.p.get()
+    fn p(&self) -> Option<u32> {
+        self.0.p.map(NonZeroU32::get)
     }
 
+    /// Returns `None` if `t` was not specified.
     #[getter]
-    fn t(&self) -> u32 {
-        self.0.t.get()
+    fn t(&self) -> Option<u32> {
+        self.0.t.map(NonZeroU32::get)
     }
 
+    /// Returns `None` if `c` was not specified.
     #[getter]
-    fn c(&self) -> u32 {
-        self.0.c.get()
+    fn c(&self) -> Option<u32> {
+        self.0.c.map(NonZeroU32::get)
     }
 
+    /// Returns `None` if `m` was not specified.
     #[getter]
-    fn m(&self) -> PyMemory {
-        PyMemory(self.0.m)
+    fn m(&self) -> Option<PyMemory> {
+        self.0.m.map(PyMemory)
     }
 
     fn __repr__(&self) -> String {
-        format!(
-            "ResourceSpecCPU(p={}, t={}, c={}, m={:?})",
-            self.0.p.get(),
-            self.0.t.get(),
-            self.0.c.get(),
-            self.0.m.to_string()
-        )
+        // Render unset fields as `None` so the repr round-trips
+        // visually with the relaxed Option<...> shape.
+        let p = self.0.p.map(NonZeroU32::get);
+        let t = self.0.t.map(NonZeroU32::get);
+        let c = self.0.c.map(NonZeroU32::get);
+        let m = self.0.m.map(|m| m.to_string());
+        format!("ResourceSpecCPU(p={p:?}, t={t:?}, c={c:?}, m={m:?})")
     }
 }
 
