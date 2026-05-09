@@ -272,17 +272,69 @@ pub struct PyResourceSpec(pub inner::ResourceSpec);
 #[gen_stub_pymethods]
 #[pymethods]
 impl PyResourceSpec {
-    /// Parse a Slurm `--rsc` spec, e.g. `"p=4:t=8:c=8:m=8G"` or `"g=1"`.
+    /// Build a `ResourceSpec` from individual KUDPC `--rsc` keys.
+    ///
+    /// All keyword arguments are optional. CPU keys
+    /// (`processes`, `threads`, `cores`, `memory`) and the GPU key
+    /// (`gpus`) are mutually exclusive — passing any of the former
+    /// together with the latter raises `ValueError`. Each integer
+    /// key must be `>= 1`. The `memory` parameter must be a
+    /// [`PyMemory`] instance — wrap a string with `Memory("2G")` or
+    /// `Memory.from_value(2, MemoryUnit.Giga)` first.
     #[new]
-    fn new(s: &str) -> PyResult<Self> {
+    #[pyo3(signature = (
+        processes = None, threads = None, cores = None,
+        memory = None, gpus = None,
+    ))]
+    fn new(
+        processes: Option<u32>,
+        threads: Option<u32>,
+        cores: Option<u32>,
+        memory: Option<PyMemory>,
+        gpus: Option<u32>,
+    ) -> PyResult<Self> {
+        let to_nz = |v: u32, key: &'static str| {
+            NonZeroU32::new(v)
+                .ok_or_else(|| PyValueError::new_err(format!("ResourceSpec/{key} must be > 0")))
+        };
+        let p = processes.map(|v| to_nz(v, "processes")).transpose()?;
+        let t = threads.map(|v| to_nz(v, "threads")).transpose()?;
+        let c = cores.map(|v| to_nz(v, "cores")).transpose()?;
+        let m = memory.map(|pm| pm.0);
+        let g = gpus.map(|v| to_nz(v, "gpus")).transpose()?;
+
+        let cpu_keys_present = p.is_some() || t.is_some() || c.is_some() || m.is_some();
+        match (cpu_keys_present, g) {
+            (true, Some(_)) => Err(PyValueError::new_err(
+                "CPU keys (processes/threads/cores/memory) and gpus \
+                 are mutually exclusive — pass one group or the other",
+            )),
+            (false, Some(g)) => Ok(Self(inner::ResourceSpec::GPU(inner::ResourceSpecGPU { g }))),
+            (true, None) => Ok(Self(inner::ResourceSpec::CPU(inner::ResourceSpecCPU {
+                p,
+                t,
+                c,
+                m,
+            }))),
+            // No CPU keys, no GPU — the all-None CPU is intentionally valid.
+            (false, None) => Ok(Self(inner::ResourceSpec::CPU(
+                inner::ResourceSpecCPU::default(),
+            ))),
+        }
+    }
+
+    /// Parse a Slurm `--rsc` spec, e.g. `"p=4:t=8:c=8:m=8G"` or `"g=1"`.
+    #[staticmethod]
+    fn from_str(s: &str) -> PyResult<Self> {
         s.parse::<inner::ResourceSpec>()
             .map(Self)
             .map_err(Into::into)
     }
 
+    /// Backwards-compatible alias for [`Self::from_str`].
     #[staticmethod]
     fn parse(s: &str) -> PyResult<Self> {
-        Self::new(s)
+        Self::from_str(s)
     }
 
     #[staticmethod]
