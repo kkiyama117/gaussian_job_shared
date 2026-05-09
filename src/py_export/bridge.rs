@@ -148,10 +148,20 @@ impl PyStubType for JobTimeLimitBridge {
 }
 
 // ---------------------------------------------------------------- ResourceSpec
-/// Bridge over SAR's `ResourceSpec`. Reads the descriptive attribute
-/// names exposed by SAR's `PyResourceSpec` (`processes`, `threads`,
-/// `cores`, `memory`, `gpus`) and routes through
+/// Bridge over SAR's `ResourceSpec`. Reads the public Python-facing API
+/// (`kind` plus `cpu_spec` / `gpu_spec`) and routes through
 /// `ResourceSpec::from_parts` (the pure-Rust validator).
+///
+/// Shape of SAR's `PyResourceSpec`:
+///   - `kind: str` — `"cpu"` or `"gpu"`.
+///   - `cpu_spec: Optional[ResourceSpecCPU]` with fields `p`, `t`, `c`, `m`.
+///   - `gpu_spec: Optional[ResourceSpecGPU]` with field `g`.
+///
+/// The `processes`/`threads`/`cores`/`memory`/`gpus` names in SAR's
+/// `PyResourceSpec.__new__` are constructor keyword arguments only —
+/// they are NOT exposed as attributes on instances. Reading them off an
+/// instance raises `AttributeError`, which is the original bug this
+/// bridge fixes.
 #[repr(transparent)]
 pub struct ResourceSpecBridge(pub ResourceSpec);
 
@@ -160,20 +170,45 @@ impl<'py> FromPyObject<'_, 'py> for ResourceSpecBridge {
 
     fn extract(ob: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
         let py = ob.py();
-        let processes: Option<u32> = ob.getattr(intern!(py, "processes"))?.extract()?;
-        let threads: Option<u32> = ob.getattr(intern!(py, "threads"))?.extract()?;
-        let cores: Option<u32> = ob.getattr(intern!(py, "cores"))?.extract()?;
-        let gpus: Option<u32> = ob.getattr(intern!(py, "gpus"))?.extract()?;
-        let memory_any = ob.getattr(intern!(py, "memory"))?;
-        let memory = if memory_any.is_none() {
-            None
-        } else {
-            // Bound::extract dispatches FromPyObject::extract via Borrowed.
-            Some(memory_any.extract::<MemoryBridge>()?.0)
-        };
-        ResourceSpec::from_parts(processes, threads, cores, memory, gpus)
-            .map(Self)
-            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+        let kind: String = ob.getattr(intern!(py, "kind"))?.extract()?;
+        match kind.as_str() {
+            "cpu" => {
+                let cpu_any = ob.getattr(intern!(py, "cpu_spec"))?;
+                if cpu_any.is_none() {
+                    return Err(pyo3::exceptions::PyValueError::new_err(
+                        "ResourceSpec.kind=='cpu' but cpu_spec is None",
+                    ));
+                }
+                let p: Option<u32> = cpu_any.getattr(intern!(py, "p"))?.extract()?;
+                let t: Option<u32> = cpu_any.getattr(intern!(py, "t"))?.extract()?;
+                let c: Option<u32> = cpu_any.getattr(intern!(py, "c"))?.extract()?;
+                let m_any = cpu_any.getattr(intern!(py, "m"))?;
+                let memory = if m_any.is_none() {
+                    None
+                } else {
+                    // Bound::extract dispatches FromPyObject::extract via Borrowed.
+                    Some(m_any.extract::<MemoryBridge>()?.0)
+                };
+                ResourceSpec::from_parts(p, t, c, memory, None)
+                    .map(Self)
+                    .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+            }
+            "gpu" => {
+                let gpu_any = ob.getattr(intern!(py, "gpu_spec"))?;
+                if gpu_any.is_none() {
+                    return Err(pyo3::exceptions::PyValueError::new_err(
+                        "ResourceSpec.kind=='gpu' but gpu_spec is None",
+                    ));
+                }
+                let g: u32 = gpu_any.getattr(intern!(py, "g"))?.extract()?;
+                ResourceSpec::from_parts(None, None, None, None, Some(g))
+                    .map(Self)
+                    .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+            }
+            other => Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "unknown ResourceSpec.kind: {other:?} (expected \"cpu\" or \"gpu\")"
+            ))),
+        }
     }
 }
 
