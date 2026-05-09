@@ -235,21 +235,21 @@ impl<'py> FromPyObject<'_, 'py> for SlurmJobConfigBridge {
         // value with a clear error.
         let array_spec_any = ob.getattr(intern!(py, "array_spec"))?;
         if !array_spec_any.is_none() {
-            return Err(pyo3::exceptions::PyNotImplementedError::new_err(
+            return Err(pyo3::exceptions::PyValueError::new_err(
                 "SlurmJobConfig.array_spec passthrough is not yet implemented in the shared2 \
                  bridge — set it via SAR-side construction instead",
             ));
         }
         let dependency_any = ob.getattr(intern!(py, "dependency"))?;
         if !dependency_any.is_none() {
-            return Err(pyo3::exceptions::PyNotImplementedError::new_err(
+            return Err(pyo3::exceptions::PyValueError::new_err(
                 "SlurmJobConfig.dependency passthrough is not yet implemented in the shared2 \
                  bridge — set it via SAR-side construction instead",
             ));
         }
         let mail_types_any = ob.getattr(intern!(py, "mail_types"))?;
         if !mail_types_any.is_none() {
-            return Err(pyo3::exceptions::PyNotImplementedError::new_err(
+            return Err(pyo3::exceptions::PyValueError::new_err(
                 "SlurmJobConfig.mail_types passthrough is not yet implemented in the shared2 \
                  bridge — set it via SAR-side construction instead",
             ));

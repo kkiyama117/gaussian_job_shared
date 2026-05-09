@@ -284,12 +284,20 @@ impl PyJobSpec {
         self.0.program = v.0;
     }
 
-    /// Returns SAR's canonical `SlurmJobConfig` Python instance (looked
-    /// up at runtime via `Py::import`). Currently only the always-present
-    /// `partition` field is round-tripped — additional fields can be
-    /// surfaced incrementally as call sites need them, by extending the
-    /// kwargs assembled below. This satisfies the Pyclass Single Owner
-    /// rule (no `PySlurmJobConfig` symbol in shared2's cdylib).
+    /// Get the SLURM config as a Python `SlurmJobConfig` instance.
+    ///
+    /// **Limitation:** This getter only round-trips the `partition` field.
+    /// All other fields (`time_limit`, `resource_spec`, `log_stdout`,
+    /// `log_stderr`, `comment`, `job_name`, `mail_user`) are dropped — the
+    /// returned Python object will have those defaulted to SAR's `__new__`
+    /// defaults (`None` for most). The full Rust-side state is preserved
+    /// in `self.0.config`; the loss is only in the Python projection.
+    ///
+    /// This is a known projection gap tracked for the cross-cdylib smoke
+    /// test (Task 17 of the slurm vocab migration). The fix is to expand
+    /// the `cls.call1((..., ..., ...))` arg tuple to include every field,
+    /// once SAR's `SlurmJobConfig.__new__` keyword-argument signature is
+    /// stable.
     #[getter]
     fn config<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let module = py.import(SAR_SBATCH_OPTIONS_MODULE)?;
