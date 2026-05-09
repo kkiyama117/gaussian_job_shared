@@ -239,7 +239,7 @@ def test_memory_parse_unit_default_and_explicit():
 
 
 def test_resource_spec_cpu_round_trip():
-    r = ResourceSpec("p=4:t=8:c=8:m=8G")
+    r = ResourceSpec.from_str("p=4:t=8:c=8:m=8G")
     assert r.kind == "cpu"
     assert r.cpu_spec is not None
     assert r.cpu_spec.p == 4
@@ -258,7 +258,7 @@ def test_resource_spec_gpu_round_trip():
 
 def test_resource_spec_rejects_zero_cpu():
     with pytest.raises(ValueError):
-        ResourceSpec("p=0:t=1:c=1:m=1G")
+        ResourceSpec.from_str("p=0:t=1:c=1:m=1G")
 
 
 def test_slurm_array_spec_parse():
@@ -311,7 +311,7 @@ def test_slurm_job_config_construction_and_setters():
         partition="long",
         time_limit=JobTimeLimit("01:00:00"),
         comment="hello",
-        resource_spec=ResourceSpec("p=1:t=1:c=1:m=1G"),
+        resource_spec=ResourceSpec.from_str("p=1:t=1:c=1:m=1G"),
     )
     assert cfg.partition == "long"
     assert cfg.time_limit.total_seconds == 3600
