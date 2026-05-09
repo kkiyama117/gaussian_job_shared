@@ -86,5 +86,16 @@ pyo3-stub-gen = { git = "https://github.com/Jij-Inc/pyo3-stub-gen", branch = "ma
 [features]
 default = ["pyo3", "stub_gen"]
 
-pyo3 = ["dep:pyo3", "pyo3-async-runtimes", "pyo3-log", "pythonize"]
-stub_gen = ["pyo3-stub-gen"]
+# Canonical-wheel build for shared2's own pyclasses (workflow types,
+# Gaussian-domain types). See the architecture rule comment in
+# slurm_async_runner/Cargo.toml — shared2 follows the same Pyclass
+# Single Owner discipline.
+pyo3 = [
+    "dep:pyo3",
+    "pyo3-async-runtimes",
+    "pyo3-log",
+    "pythonize",
+    "pyo3-stub-gen",
+]
+
+stub_gen = ["pyo3"]
