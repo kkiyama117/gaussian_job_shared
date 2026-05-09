@@ -3,7 +3,7 @@
 //! (`Job` / `JobSpec` / `JobEdge` / `JobId` / `Program` / `CalcType`) and
 //! the top-level container (`JobFlow`). The runtime lifecycle status
 //! (`JobStatus` / `JobState` / `JobReason`) lives under
-//! [`crate::entities::slurm::status`] since it mirrors SLURM's own
+//! [`slurm_async_runner::entities::slurm::status`] since it mirrors SLURM's own
 //! `(state, reason)` pair.
 //!
 //! See `docs/superpowers/specs/2026-05-08-slurm-job-flow-structs-design.md`.
@@ -71,7 +71,7 @@ mod tests {
 
     use chrono::TimeZone;
 
-    use crate::entities::slurm::{DependencyType, SlurmJobConfig};
+    use slurm_async_runner::entities::slurm::{DependencyType, SlurmJobConfig};
 
     fn sample_config() -> SlurmJobConfig {
         SlurmJobConfig {

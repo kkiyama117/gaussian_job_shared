@@ -1,4 +1,4 @@
-use crate::entities::slurm::SlurmJobConfig;
+use slurm_async_runner::entities::slurm::SlurmJobConfig;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone)]

@@ -1,7 +1,6 @@
 //! Python-facing wrappers for `crate::entities::*`.
 //! See `docs/superpowers/specs/2026-05-08-rust-python-ffi-design.md`.
 
-pub mod slurm;
 pub mod workflow;
 
 use pyo3::prelude::*;
@@ -12,9 +11,10 @@ pub(crate) mod inner_module {
 
     const PYTHON_MODULE_NAME: &str = "gaussian_job_shared._core.entities";
 
-    #[pymodule_export]
-    use super::slurm::inner_module as slurm_module;
-
+    // Slurm vocab pymodule lives in slurm_async_runner now (per the
+    // Pyclass Single Owner architecture rule). Python users import
+    // slurm types from slurm_async_runner._slurm_async_runner_core.entities.slurm.*
+    // directly.
     #[pymodule_export]
     use super::workflow::inner_module as workflow_module;
 

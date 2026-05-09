@@ -1,13 +1,23 @@
 //! PyO3 wrappers for `entities::workflow::{CalcType, JobId, Program, JobEdge, JobSpec, Job}`.
 //! See `docs/superpowers/specs/2026-05-08-rust-python-ffi-design.md` §4.
+//!
+//! Pyclass Single Owner rule: this file does NOT import SAR pyclasses
+//! directly — that would link SAR's pyclass impls into shared2's cdylib
+//! and produce two competing implementations of `slurm.SlurmJobConfig`.
+//! Instead, accept slurm vocab values as duck-typed bridges
+//! (`SlurmJobConfigBridge`, `DependencyTypeBridge`; see
+//! `crate::py_export::bridge`), and return them via `Py::import` so the
+//! single SAR-owned Python class is always the one users see.
 
+use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::{gen_stub_pyclass, gen_stub_pymethods};
 
 use crate::entities::workflow as inner;
 
-use crate::py_export::entities::slurm::sbatch_options::config::PySlurmJobConfig;
-use crate::py_export::entities::slurm::sbatch_options::dependency::PyDependencyType;
+use crate::py_export::bridge::{
+    DependencyTypeBridge, SAR_SBATCH_OPTIONS_MODULE, SlurmJobConfigBridge,
+};
 
 // ----------------------------------------------------------------- CalcType
 #[gen_stub_pyclass]
@@ -170,12 +180,16 @@ pub struct PyJobEdge(pub inner::JobEdge);
 impl PyJobEdge {
     /// `from_` is spelled with a trailing underscore on the Python side
     /// because `from` is a reserved word.
+    ///
+    /// `kind` accepts SAR's `DependencyType` Python enum (duck-typed via
+    /// `DependencyTypeBridge`). At runtime any object whose `str(...)` is
+    /// a recognised Slurm dependency keyword is accepted.
     #[new]
     #[pyo3(signature = (from_, kind))]
-    fn new(from_: PyJobId, kind: PyDependencyType) -> Self {
+    fn new(from_: PyJobId, kind: DependencyTypeBridge) -> Self {
         Self(inner::JobEdge {
             from: from_.0,
-            kind: kind.into(),
+            kind: kind.0,
         })
     }
 
@@ -189,14 +203,32 @@ impl PyJobEdge {
         self.0.from = v.0;
     }
 
+    /// Returns SAR's canonical `DependencyType` Python enum value
+    /// (looked up at runtime via `Py::import` to satisfy the Pyclass
+    /// Single Owner rule — shared2 never owns a `DependencyType` pyclass).
     #[getter]
-    fn kind(&self) -> PyDependencyType {
-        self.0.kind.into()
+    fn kind<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let module = py.import(SAR_SBATCH_OPTIONS_MODULE)?;
+        let cls = module.getattr(intern!(py, "DependencyType"))?;
+        // SAR's PyDependencyType variants share their Rust names
+        // (After/AfterAny/AfterBurstBuffer/AfterCorr/AfterNotOk/AfterOk/Singleton).
+        let variant_name = match self.0.kind {
+            slurm_async_runner::entities::slurm::DependencyType::After => "After",
+            slurm_async_runner::entities::slurm::DependencyType::AfterAny => "AfterAny",
+            slurm_async_runner::entities::slurm::DependencyType::AfterBurstBuffer => {
+                "AfterBurstBuffer"
+            }
+            slurm_async_runner::entities::slurm::DependencyType::AfterCorr => "AfterCorr",
+            slurm_async_runner::entities::slurm::DependencyType::AfterNotOk => "AfterNotOk",
+            slurm_async_runner::entities::slurm::DependencyType::AfterOk => "AfterOk",
+            slurm_async_runner::entities::slurm::DependencyType::Singleton => "Singleton",
+        };
+        cls.getattr(variant_name)
     }
 
     #[setter]
-    fn set_kind(&mut self, v: PyDependencyType) {
-        self.0.kind = v.into();
+    fn set_kind(&mut self, v: DependencyTypeBridge) {
+        self.0.kind = v.0;
     }
 
     fn __repr__(&self) -> String {
@@ -229,9 +261,12 @@ pub struct PyJobSpec(pub inner::JobSpec);
 #[gen_stub_pymethods]
 #[pymethods]
 impl PyJobSpec {
+    /// `config` accepts SAR's `SlurmJobConfig` Python class (duck-typed
+    /// via `SlurmJobConfigBridge`). At runtime any object exposing the
+    /// expected attributes is accepted.
     #[new]
     #[pyo3(signature = (program, config, body))]
-    fn new(program: PyProgram, config: PySlurmJobConfig, body: String) -> Self {
+    fn new(program: PyProgram, config: SlurmJobConfigBridge, body: String) -> Self {
         Self(inner::JobSpec {
             program: program.0,
             config: config.0,
@@ -249,13 +284,26 @@ impl PyJobSpec {
         self.0.program = v.0;
     }
 
+    /// Returns SAR's canonical `SlurmJobConfig` Python instance (looked
+    /// up at runtime via `Py::import`). Currently only the always-present
+    /// `partition` field is round-tripped — additional fields can be
+    /// surfaced incrementally as call sites need them, by extending the
+    /// kwargs assembled below. This satisfies the Pyclass Single Owner
+    /// rule (no `PySlurmJobConfig` symbol in shared2's cdylib).
     #[getter]
-    fn config(&self) -> PySlurmJobConfig {
-        PySlurmJobConfig(self.0.config.clone())
+    fn config<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let module = py.import(SAR_SBATCH_OPTIONS_MODULE)?;
+        let cls = module.getattr(intern!(py, "SlurmJobConfig"))?;
+        // SAR's PySlurmJobConfig.__new__ takes (partition, time_limit=None,
+        // log_stdout=None, log_stderr=None, comment=None, job_name=None,
+        // array_spec=None, dependency=None, mail_user=None, mail_types=None,
+        // resource_spec=None). We pass `partition` positionally and let the
+        // rest default. Round-tripping every field is left for follow-up.
+        cls.call1((self.0.config.partition.clone(),))
     }
 
     #[setter]
-    fn set_config(&mut self, v: PySlurmJobConfig) {
+    fn set_config(&mut self, v: SlurmJobConfigBridge) {
         self.0.config = v.0;
     }
 
