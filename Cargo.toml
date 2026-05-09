@@ -79,5 +79,23 @@ pyo3-stub-gen = { git = "https://github.com/Jij-Inc/pyo3-stub-gen", branch = "ma
 [features]
 default = ["pyo3", "stub_gen"]
 
-pyo3 = ["dep:pyo3", "pyo3-async-runtimes", "pyo3-log", "pythonize"]
-stub_gen = ["pyo3-stub-gen"]
+# Full pyo3 build including the outermost #[pymodule] entry point.
+# This is the public surface for the shared2 wheel build and matches
+# the pre-split `pyo3` behaviour exactly.
+pyo3 = ["pyo3-types", "pymodule-entry"]
+
+# pyclass definitions only — no `_gaussian_job_shared_core` pymodule
+# entry. Downstream crates that build their own #[pymodule] should
+# enable this (and NOT `pyo3`) to avoid a duplicate `PyInit_*` linker
+# symbol. Pulls in `pyo3-stub-gen` because the pyclass definitions
+# unconditionally reference its derive macros (`gen_stub_pyclass`,
+# `gen_stub_pymethods`, etc.).
+pyo3-types = ["dep:pyo3", "pyo3-async-runtimes", "pyo3-log", "pythonize", "pyo3-stub-gen"]
+
+# Gates the outermost #[pymodule] block in src/py_export/mod.rs.
+# Implied by `pyo3`. Should never be enabled without `pyo3-types`.
+pymodule-entry = []
+
+# Enables the stub-info gatherer used by the `stub_gen` binary.
+# Implies `pyo3-types` because the gatherer needs the pyclass defs.
+stub_gen = ["pyo3-types", "pyo3-stub-gen"]
