@@ -986,7 +986,7 @@ checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 [[package]]
 name = "slurm_async_runner"
 version = "0.1.0"
-source = "git+https://github.com/kkiyama117/slurm-async-runner.git?rev=a44abe2e863f1f68611ef72797f58151edb5f4ce#a44abe2e863f1f68611ef72797f58151edb5f4ce"
+source = "git+https://github.com/kkiyama117/slurm-async-runner.git?rev=098db6bec05eb0144cff66a49c6f431577adaed4#098db6bec05eb0144cff66a49c6f431577adaed4"
 dependencies = [
  "anyhow",
  "async-trait",
