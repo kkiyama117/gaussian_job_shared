@@ -22,7 +22,7 @@ use self::job::{PyJob, PyJobId};
 #[gen_stub_pyclass]
 #[pyclass(
     name = "JobFlow",
-    module = "gaussian_job_shared._core.entities.workflow",
+    module = "gaussian_job_shared._gaussian_job_shared_core.entities.workflow",
     from_py_object
 )]
 #[derive(Clone)]
@@ -164,7 +164,8 @@ impl From<PyJobFlow> for inner::JobFlow {
 pub(crate) mod inner_module {
     use super::*;
 
-    const PYTHON_MODULE_NAME: &str = "gaussian_job_shared._core.entities.workflow";
+    const PYTHON_MODULE_NAME: &str =
+        "gaussian_job_shared._gaussian_job_shared_core.entities.workflow";
 
     #[pymodule_export]
     use super::PyJobFlow;

@@ -173,12 +173,28 @@ class ResourceSpec:
     @property
     def gpu_spec(self) -> typing.Optional[ResourceSpecGPU]: ...
     def __eq__(self, other: builtins.object, /) -> builtins.bool: ...
-    def __new__(cls, s: builtins.str) -> ResourceSpec:
+    def __new__(cls, processes: typing.Optional[builtins.int] = None, threads: typing.Optional[builtins.int] = None, cores: typing.Optional[builtins.int] = None, memory: typing.Optional[Memory] = None, gpus: typing.Optional[builtins.int] = None) -> ResourceSpec:
+        r"""
+        Build a `ResourceSpec` from individual KUDPC `--rsc` keys.
+        
+        All keyword arguments are optional. CPU keys
+        (`processes`, `threads`, `cores`, `memory`) and the GPU key
+        (`gpus`) are mutually exclusive — passing any of the former
+        together with the latter raises `ValueError`. Each integer
+        key must be `>= 1`. The `memory` parameter must be a
+        [`PyMemory`] instance — wrap a string with `Memory("2G")` or
+        `Memory.from_value(2, MemoryUnit.Giga)` first.
+        """
+    @staticmethod
+    def from_str(s: builtins.str) -> ResourceSpec:
         r"""
         Parse a Slurm `--rsc` spec, e.g. `"p=4:t=8:c=8:m=8G"` or `"g=1"`.
         """
     @staticmethod
-    def parse(s: builtins.str) -> ResourceSpec: ...
+    def parse(s: builtins.str) -> ResourceSpec:
+        r"""
+        Backwards-compatible alias for [`Self::from_str`].
+        """
     @staticmethod
     def cpu(spec: ResourceSpecCPU) -> ResourceSpec: ...
     @staticmethod
@@ -189,15 +205,33 @@ class ResourceSpec:
 @typing.final
 class ResourceSpecCPU:
     @property
-    def p(self) -> builtins.int: ...
+    def p(self) -> typing.Optional[builtins.int]:
+        r"""
+        Returns `None` if `p` was not specified.
+        """
     @property
-    def t(self) -> builtins.int: ...
+    def t(self) -> typing.Optional[builtins.int]:
+        r"""
+        Returns `None` if `t` was not specified.
+        """
     @property
-    def c(self) -> builtins.int: ...
+    def c(self) -> typing.Optional[builtins.int]:
+        r"""
+        Returns `None` if `c` was not specified.
+        """
     @property
-    def m(self) -> Memory: ...
+    def m(self) -> typing.Optional[Memory]:
+        r"""
+        Returns `None` if `m` was not specified.
+        """
     def __eq__(self, other: builtins.object, /) -> builtins.bool: ...
-    def __new__(cls, p: builtins.int, t: builtins.int, c: builtins.int, m: Memory) -> ResourceSpecCPU: ...
+    def __new__(cls, p: builtins.int, t: builtins.int, c: builtins.int, m: Memory) -> ResourceSpecCPU:
+        r"""
+        Construct a fully-specified CPU resource spec — all four of
+        (`p`, `t`, `c`, `m`) are required positional arguments.
+        For partial specs (e.g. `p=60:t=1:c=1` per the KUDPC manual),
+        use [`PyResourceSpec`]'s positional/kwargs constructor instead.
+        """
     def __repr__(self) -> builtins.str: ...
 
 @typing.final

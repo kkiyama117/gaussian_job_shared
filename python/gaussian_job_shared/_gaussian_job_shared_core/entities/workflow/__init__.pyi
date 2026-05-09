@@ -3,7 +3,7 @@
 
 import builtins
 import datetime
-from gaussian_job_shared._core.entities.slurm import sbatch_options
+from gaussian_job_shared._gaussian_job_shared_core.entities.slurm import sbatch_options
 import os
 import pathlib
 import typing

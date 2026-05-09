@@ -26,7 +26,7 @@ build-backend = "maturin"
 [tool.maturin]
 features = ["pyo3/extension-module"]
 # manifest-path   = "rust/py_export/Cargo.toml"
-module-name = "gaussian_job_shared._core"
+module-name = "gaussian_job_shared._gaussian_job_shared_core"
 profile = "dev"
 python-packages = ["gaussian_job_shared"]
 python-source = "python"

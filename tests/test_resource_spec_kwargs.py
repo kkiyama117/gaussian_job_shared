@@ -1,5 +1,5 @@
 """Verify the positional/kwargs constructor and from_str classmethod
-on gaussian_job_shared._core.entities.slurm.sbatch_options.ResourceSpec.
+on gaussian_job_shared._gaussian_job_shared_core.entities.slurm.sbatch_options.ResourceSpec.
 
 These tests run inside the maturin develop build, i.e. against the
 .so produced by `maturin develop` in this repo.
@@ -7,7 +7,7 @@ These tests run inside the maturin develop build, i.e. against the
 
 import pytest
 
-from gaussian_job_shared._core.entities.slurm.sbatch_options import (
+from gaussian_job_shared._gaussian_job_shared_core.entities.slurm.sbatch_options import (
     Memory,
     ResourceSpec,
 )

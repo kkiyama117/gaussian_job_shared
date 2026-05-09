@@ -13,7 +13,7 @@ use crate::py_export::entities::slurm::sbatch_options::dependency::PyDependencyT
 #[gen_stub_pyclass]
 #[pyclass(
     name = "CalcType",
-    module = "gaussian_job_shared._core.entities.workflow",
+    module = "gaussian_job_shared._gaussian_job_shared_core.entities.workflow",
     from_py_object,
     eq,
     ord,
@@ -61,7 +61,7 @@ impl From<PyCalcType> for inner::CalcType {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "JobId",
-    module = "gaussian_job_shared._core.entities.workflow",
+    module = "gaussian_job_shared._gaussian_job_shared_core.entities.workflow",
     from_py_object,
     eq,
     ord,
@@ -110,7 +110,7 @@ impl From<PyJobId> for inner::JobId {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "Program",
-    module = "gaussian_job_shared._core.entities.workflow",
+    module = "gaussian_job_shared._gaussian_job_shared_core.entities.workflow",
     from_py_object,
     eq,
     ord,
@@ -158,7 +158,7 @@ impl From<PyProgram> for inner::Program {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "JobEdge",
-    module = "gaussian_job_shared._core.entities.workflow",
+    module = "gaussian_job_shared._gaussian_job_shared_core.entities.workflow",
     from_py_object,
     eq
 )]
@@ -220,7 +220,7 @@ impl From<PyJobEdge> for inner::JobEdge {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "JobSpec",
-    module = "gaussian_job_shared._core.entities.workflow",
+    module = "gaussian_job_shared._gaussian_job_shared_core.entities.workflow",
     from_py_object
 )]
 #[derive(Clone)]
@@ -293,7 +293,7 @@ impl From<PyJobSpec> for inner::JobSpec {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "Job",
-    module = "gaussian_job_shared._core.entities.workflow",
+    module = "gaussian_job_shared._gaussian_job_shared_core.entities.workflow",
     from_py_object
 )]
 #[derive(Clone)]

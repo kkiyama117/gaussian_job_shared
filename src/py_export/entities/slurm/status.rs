@@ -18,7 +18,7 @@ use crate::entities::slurm::status as inner;
 #[gen_stub_pyclass_enum]
 #[pyclass(
     name = "JobState",
-    module = "gaussian_job_shared._core.entities.slurm.status",
+    module = "gaussian_job_shared._gaussian_job_shared_core.entities.slurm.status",
     from_py_object,
     eq,
     eq_int,
@@ -157,7 +157,7 @@ impl From<PyJobState> for inner::JobState {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "JobReason",
-    module = "gaussian_job_shared._core.entities.slurm.status",
+    module = "gaussian_job_shared._gaussian_job_shared_core.entities.slurm.status",
     from_py_object,
     eq,
     hash,
@@ -292,7 +292,7 @@ impl From<PyJobReason> for inner::JobReason {
 #[gen_stub_pyclass]
 #[pyclass(
     name = "JobStatus",
-    module = "gaussian_job_shared._core.entities.slurm.status",
+    module = "gaussian_job_shared._gaussian_job_shared_core.entities.slurm.status",
     from_py_object,
     eq,
     hash,
@@ -365,7 +365,8 @@ impl From<PyJobStatus> for inner::JobStatus {
 pub(crate) mod inner_module {
     use super::*;
 
-    const PYTHON_MODULE_NAME: &str = "gaussian_job_shared._core.entities.slurm.status";
+    const PYTHON_MODULE_NAME: &str =
+        "gaussian_job_shared._gaussian_job_shared_core.entities.slurm.status";
 
     #[pymodule_export]
     use super::{PyJobReason, PyJobState, PyJobStatus};
