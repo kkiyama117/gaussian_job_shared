@@ -93,9 +93,11 @@ pyo3 = ["pyo3-types", "pymodule-entry"]
 pyo3-types = ["dep:pyo3", "pyo3-async-runtimes", "pyo3-log", "pythonize", "pyo3-stub-gen"]
 
 # Gates the outermost #[pymodule] block in src/py_export/mod.rs.
-# Implied by `pyo3`. Should never be enabled without `pyo3-types`.
-pymodule-entry = []
+# Implies `pyo3-types` because the pymodule body uses the pyclass
+# wrappers — Cargo enforces the dependency rather than relying on a
+# convention.
+pymodule-entry = ["pyo3-types"]
 
 # Enables the stub-info gatherer used by the `stub_gen` binary.
-# Implies `pyo3-types` because the gatherer needs the pyclass defs.
-stub_gen = ["pyo3-types", "pyo3-stub-gen"]
+# Pulls in `pyo3-types`, which already implies `pyo3-stub-gen`.
+stub_gen = ["pyo3-types"]
