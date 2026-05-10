@@ -46,7 +46,7 @@ uuid = { version = "1.23", features = ["serde", "v4", "v7"] }
 # We consume Rust types only — `default-features = false` ensures SAR's
 # pyclass impls do NOT link into shared2's cdylib (the Pyclass Single
 # Owner architecture rule from the SAR repo's spec doc).
-slurm_async_runner = { git = "https://github.com/kkiyama117/slurm-async-runner.git", rev = "098db6bec05eb0144cff66a49c6f431577adaed4", default-features = false }
+slurm_async_runner = { git = "https://github.com/kkiyama117/slurm-async-runner.git", default-features = false }
 
 ##### OPTIONAL DEPS #####
 # PYO3
