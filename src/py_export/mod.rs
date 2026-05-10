@@ -1,5 +1,6 @@
 #![cfg(feature = "pyo3")]
 
+pub mod bridge;
 pub mod entities;
 pub mod error;
 

@@ -4,7 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::entities::slurm::DependencyType;
+use slurm_async_runner::entities::slurm::DependencyType;
 
 /// Calculation type — describes the overall purpose of a `JobFlow`
 /// (e.g. "opt", "freq", "opt+td").
@@ -99,7 +99,7 @@ pub struct JobEdge {
 
 /// Adapter so `JobEdge` can serde a `DependencyType` even though that enum
 /// has no `derive(Serialize, Deserialize)` of its own. Round-trips through
-/// `Display` / `FromStr` (defined in `crate::entities::slurm::dependency`).
+/// `Display` / `FromStr` (defined in `slurm_async_runner::entities::slurm::dependency`).
 mod dep_kind_serde {
     use std::str::FromStr;
 
@@ -129,7 +129,7 @@ pub struct JobSpec {
     /// Slurm submission directives. TaskManager produces this by merging
     /// cluster-wide defaults with per-job overrides — by the time it
     /// lands in `JobSpec` it is already complete.
-    pub config: crate::entities::slurm::SlurmJobConfig,
+    pub config: slurm_async_runner::entities::slurm::SlurmJobConfig,
 
     /// Bash script body (text *after* the `#SBATCH` directive block).
     pub body: String,
@@ -234,7 +234,7 @@ mod tests {
         assert_eq!(back, h);
     }
 
-    use crate::entities::slurm::SlurmJobConfig;
+    use slurm_async_runner::entities::slurm::SlurmJobConfig;
 
     fn sample_config() -> SlurmJobConfig {
         SlurmJobConfig {

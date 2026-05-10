@@ -41,6 +41,13 @@ toml = "1.1.2"
 # UUID and datetime
 uuid = { version = "1.23", features = ["serde", "v4", "v7"] }
 
+# SAR (slurm_async_runner) is now the canonical owner of slurm vocabulary
+# (ResourceSpec, JobTimeLimit, Memory, SlurmJobConfig, JobStatus, etc.).
+# We consume Rust types only — `default-features = false` ensures SAR's
+# pyclass impls do NOT link into shared2's cdylib (the Pyclass Single
+# Owner architecture rule from the SAR repo's spec doc).
+slurm_async_runner = { git = "https://github.com/kkiyama117/slurm-async-runner.git", default-features = false }
+
 ##### OPTIONAL DEPS #####
 # PYO3
 pyo3 = { version = "0.28", features = [
@@ -79,5 +86,16 @@ pyo3-stub-gen = { git = "https://github.com/Jij-Inc/pyo3-stub-gen", branch = "ma
 [features]
 default = ["pyo3", "stub_gen"]
 
-pyo3 = ["dep:pyo3", "pyo3-async-runtimes", "pyo3-log", "pythonize"]
-stub_gen = ["pyo3-stub-gen"]
+# Canonical-wheel build for shared2's own pyclasses (workflow types,
+# Gaussian-domain types). See the architecture rule comment in
+# slurm_async_runner/Cargo.toml — shared2 follows the same Pyclass
+# Single Owner discipline.
+pyo3 = [
+    "dep:pyo3",
+    "pyo3-async-runtimes",
+    "pyo3-log",
+    "pythonize",
+    "pyo3-stub-gen",
+]
+
+stub_gen = ["pyo3","pyo3-stub-gen"]
