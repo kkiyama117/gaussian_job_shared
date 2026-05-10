@@ -98,4 +98,4 @@ pyo3 = [
     "pyo3-stub-gen",
 ]
 
-stub_gen = ["pyo3"]
+stub_gen = ["pyo3","pyo3-stub-gen"]
