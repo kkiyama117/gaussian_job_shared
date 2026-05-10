@@ -5,6 +5,51 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed (BREAKING — SLURM vocabulary extracted to `slurm_async_runner`)
+
+- **`entities::slurm::*` removed from this crate.** All SLURM vocabulary
+  (`SlurmJobConfig`, `SlurmArraySpec`, `SlurmDependency`, `ResourceSpec`,
+  `JobTimeLimit`, `Memory`, `MailType`, `MailTypeInput`, `JobStatus`,
+  `JobState`, `JobReason`, `DependencyType`, …) now lives in the external
+  [`slurm_async_runner`](https://github.com/kkiyama117/slurm-async-runner)
+  (SAR) crate, which is the canonical owner. Migrate Rust imports:
+
+  ```rust
+  // Before
+  use gaussian_job_shared::entities::slurm::{SlurmJobConfig, JobStatus};
+
+  // After
+  use slurm_async_runner::entities::slurm::{SlurmJobConfig, JobStatus};
+  ```
+
+  `gaussian_job_shared` consumes SAR's Rust types only and is wired with
+  `default-features = false` so SAR's `#[pyclass]` impls do **not** link
+  into shared2's `cdylib` (the *Pyclass Single Owner* architecture rule).
+
+- **Python-side: SLURM pyclasses are no longer exported by
+  `gaussian_job_shared._core`.** `gaussian_job_shared._core.entities.slurm`
+  is gone. Migrate imports to SAR:
+
+  ```python
+  # Before
+  from gaussian_job_shared._core.entities.slurm.sbatch_options import SlurmJobConfig
+  from gaussian_job_shared._core.entities.slurm.status        import JobStatus
+
+  # After
+  from slurm_async_runner._slurm_async_runner_core.entities.slurm.sbatch_options import SlurmJobConfig
+  from slurm_async_runner._slurm_async_runner_core.entities.slurm.status        import JobStatus
+  ```
+
+  Existing shared2 pyclasses that take SLURM values (e.g. `JobSpec.config`,
+  `JobEdge.kind`) accept SAR-owned Python objects directly via the
+  duck-typed `FromPyObject` bridges in `src/py_export/bridge.rs`.
+
+- **`SlurmJobConfig.array_spec` / `dependency` / `mail_types` passthrough
+  is currently `NotImplementedError`.** The bridge cannot rebuild these
+  SAR pyclass-only types without linking SAR's `pyclass` tree. Set them
+  on the SAR side and only pass plain-data fields through shared2's
+  pyclass constructors. Tracked: see `bridge.rs` doc comment.
+
 ### Changed (BREAKING — module layout + status redesign)
 
 - **`entities::workflow::status` → `entities::slurm::status`.** Job
