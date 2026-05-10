@@ -96,6 +96,9 @@ impl<'py> FromPyObject<'_, 'py> for MemoryBridge {
     fn extract(ob: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
         let py = ob.py();
         let raw_value: u32 = ob.getattr(intern!(py, "value"))?.extract()?;
+        // SAR's `Memory.value: NonZeroU32` invariant should prevent 0 from
+        // ever reaching here; this NonZeroU32::new check is defensive only,
+        // for the case where a non-SAR Python object duck-types `.value`/`.unit`.
         let value = NonZeroU32::new(raw_value).ok_or_else(|| {
             pyo3::exceptions::PyValueError::new_err("memory value must be positive (non-zero)")
         })?;
@@ -109,7 +112,7 @@ impl<'py> FromPyObject<'_, 'py> for MemoryBridge {
             "T" | "Tera" | "TiB" => MemoryUnit::Tera,
             other => {
                 return Err(pyo3::exceptions::PyValueError::new_err(format!(
-                    "unrecognized memory unit {other:?}"
+                    "unrecognized memory unit {other}"
                 )));
             }
         };
@@ -270,21 +273,21 @@ impl<'py> FromPyObject<'_, 'py> for SlurmJobConfigBridge {
         // value with a clear error.
         let array_spec_any = ob.getattr(intern!(py, "array_spec"))?;
         if !array_spec_any.is_none() {
-            return Err(pyo3::exceptions::PyValueError::new_err(
+            return Err(pyo3::exceptions::PyNotImplementedError::new_err(
                 "SlurmJobConfig.array_spec passthrough is not yet implemented in the shared2 \
                  bridge — set it via SAR-side construction instead",
             ));
         }
         let dependency_any = ob.getattr(intern!(py, "dependency"))?;
         if !dependency_any.is_none() {
-            return Err(pyo3::exceptions::PyValueError::new_err(
+            return Err(pyo3::exceptions::PyNotImplementedError::new_err(
                 "SlurmJobConfig.dependency passthrough is not yet implemented in the shared2 \
                  bridge — set it via SAR-side construction instead",
             ));
         }
         let mail_types_any = ob.getattr(intern!(py, "mail_types"))?;
         if !mail_types_any.is_none() {
-            return Err(pyo3::exceptions::PyValueError::new_err(
+            return Err(pyo3::exceptions::PyNotImplementedError::new_err(
                 "SlurmJobConfig.mail_types passthrough is not yet implemented in the shared2 \
                  bridge — set it via SAR-side construction instead",
             ));

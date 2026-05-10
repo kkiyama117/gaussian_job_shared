@@ -293,11 +293,16 @@ impl PyJobSpec {
     /// defaults (`None` for most). The full Rust-side state is preserved
     /// in `self.0.config`; the loss is only in the Python projection.
     ///
-    /// This is a known projection gap tracked for the cross-cdylib smoke
-    /// test (Task 17 of the slurm vocab migration). The fix is to expand
-    /// the `cls.call1((..., ..., ...))` arg tuple to include every field,
-    /// once SAR's `SlurmJobConfig.__new__` keyword-argument signature is
-    /// stable.
+    /// **Beware:** self-assignment (`spec.config = spec.config`) silently
+    /// destroys all dropped fields because the round-trip goes through this
+    /// getter. Mutate the underlying config in-place (or build a fresh
+    /// `SlurmJobConfig` with the desired fields) instead of read-modify-write.
+    ///
+    /// Tracked in
+    /// <https://github.com/kkiyama117/gaussian_job_shared/issues/4>.
+    /// The fix is to expand the `cls.call1((..., ..., ...))` arg tuple to
+    /// include every field, once SAR's `SlurmJobConfig.__new__`
+    /// keyword-argument signature is stable.
     #[getter]
     fn config<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let module = py.import(SAR_SBATCH_OPTIONS_MODULE)?;
