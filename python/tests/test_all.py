@@ -417,7 +417,6 @@ def test_job_flow_g16_post_pair():
     flow = JobFlow(
         uuid=JobFlow.new_uuid(),
         created_at=datetime(2026, 5, 8, tzinfo=timezone.utc),
-        work_dir="/tmp/flow-pyffi",
     )
     flow.insert_job(
         JobId("g16"),
@@ -437,15 +436,12 @@ def test_job_flow_g16_post_pair():
     assert post.parents[0].from_ == JobId("g16")
     # tags is an empty dict by default
     assert flow.tags == {}
-    # work_dir round-trips as Path
-    assert str(flow.work_dir) == "/tmp/flow-pyffi"
 
 
 def test_job_flow_uuid_setter_validates():
     flow = JobFlow(
         uuid=JobFlow.new_uuid(),
         created_at=datetime(2026, 5, 8, tzinfo=timezone.utc),
-        work_dir="/tmp/flow",
     )
     with pytest.raises(ValueError):
         flow.uuid = "not-a-uuid"
