@@ -7,7 +7,6 @@
 pub mod job;
 
 use std::collections::BTreeMap;
-use std::path::PathBuf;
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -38,14 +37,12 @@ impl PyJobFlow {
     #[pyo3(signature = (
         uuid,
         created_at,
-        work_dir,
         tags=BTreeMap::new(),
         jobs=BTreeMap::new(),
     ))]
     fn new(
         uuid: String,
         created_at: chrono::DateTime<chrono::Utc>,
-        work_dir: PathBuf,
         tags: BTreeMap<String, String>,
         jobs: BTreeMap<String, PyJob>,
     ) -> PyResult<Self> {
@@ -58,7 +55,6 @@ impl PyJobFlow {
         Ok(Self(inner::JobFlow {
             uuid: parsed_uuid,
             created_at,
-            work_dir,
             tags,
             jobs,
         }))
@@ -90,16 +86,6 @@ impl PyJobFlow {
     #[setter]
     fn set_created_at(&mut self, v: chrono::DateTime<chrono::Utc>) {
         self.0.created_at = v;
-    }
-
-    #[getter]
-    fn work_dir(&self) -> PathBuf {
-        self.0.work_dir.clone()
-    }
-
-    #[setter]
-    fn set_work_dir(&mut self, v: PathBuf) {
-        self.0.work_dir = v;
     }
 
     #[getter]

@@ -60,7 +60,7 @@ GAUSSIANジョブパイプラインの **ワークフロー層** 共有データ
 
 | 型 | 役割 |
 |----|------|
-| `JobFlow` | 1 つの論理ジョブフロー単位 (UUID v7, `created_at`, `work_dir`, `tags`, `jobs: BTreeMap<JobId, Job>`)。`BTreeMap` の構造自体が `JobId` の一意性とソート順を担保 |
+| `JobFlow` | 1 つの論理ジョブフロー単位 (UUID v7, `created_at`, `tags`, `jobs: BTreeMap<JobId, Job>`)。`BTreeMap` の構造自体が `JobId` の一意性とソート順を担保 |
 | `Job` | フロー内に置かれた `JobSpec` + 入辺 (`parents: Vec<JobEdge>`)。将来の実行時状態 (`slurm_jobid` / `status: Option<JobStatus>` 等) の拡張点 |
 | `JobSpec` | `program` + `config: SlurmJobConfig` (SAR 型) + `body` (bash 本文)。フロー非依存で複数フロー間で再利用可能 |
 | `JobId` / `Program` / `CalcType` | 透過 (`#[serde(transparent)]`) ニュータイプ |

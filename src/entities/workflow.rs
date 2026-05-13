@@ -12,7 +12,6 @@ pub mod job;
 pub use job::{CalcType, Job, JobEdge, JobId, JobSpec, Program};
 
 use std::collections::BTreeMap;
-use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -32,10 +31,6 @@ pub struct JobFlow {
 
     /// Creation timestamp (UTC).
     pub created_at: DateTime<Utc>,
-
-    /// Working directory: `<work_dir>/<JobId>/` is each Job's folder.
-    /// TaskManager creates these and writes the rendered `.bash` etc.
-    pub work_dir: PathBuf,
 
     /// Free-form metadata. BTreeMap for deterministic order. (Until a
     /// typed `experiment_id` field is added — see spec §11 — projects
@@ -104,7 +99,6 @@ mod tests {
         JobFlow {
             uuid: Uuid::nil(),
             created_at: Utc.with_ymd_and_hms(2026, 5, 8, 0, 0, 0).unwrap(),
-            work_dir: PathBuf::from("/tmp/flow"),
             tags: BTreeMap::new(),
             jobs: BTreeMap::new(),
         }
@@ -117,7 +111,21 @@ mod tests {
         let back: JobFlow = toml::from_str(&s).unwrap();
         assert_eq!(back.jobs.len(), 0);
         assert_eq!(back.uuid, flow.uuid);
-        assert_eq!(back.work_dir, flow.work_dir);
+    }
+
+    #[test]
+    fn job_flow_v4_has_no_work_dir() {
+        let flow = JobFlow {
+            uuid: Uuid::nil(),
+            created_at: Utc.with_ymd_and_hms(2026, 5, 12, 0, 0, 0).unwrap(),
+            tags: BTreeMap::new(),
+            jobs: BTreeMap::new(),
+        };
+        let s = toml::to_string(&flow).unwrap();
+        assert!(
+            !s.contains("work_dir"),
+            "TOML must not contain work_dir: {s}"
+        );
     }
 
     #[test]
@@ -176,7 +184,6 @@ mod tests {
         let bad = r#"
 uuid = "00000000-0000-0000-0000-000000000000"
 created_at = 2026-05-08T00:00:00Z
-work_dir = "/tmp/flow"
 tags = {}
 
 [jobs.g16]

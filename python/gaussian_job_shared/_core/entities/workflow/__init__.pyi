@@ -3,10 +3,9 @@
 
 import builtins
 import datetime
-from slurm_async_runner._slurm_async_runner_core.entities.slurm import sbatch_options
-import os
-import pathlib
+import slurm_async_runner._slurm_async_runner_core.entities.slurm.sbatch_options
 import typing
+
 __all__ = [
     "CalcType",
     "Job",
@@ -55,14 +54,30 @@ class JobEdge:
     @from_.setter
     def from_(self, value: JobId) -> None: ...
     @property
-    def kind(self) -> sbatch_options.DependencyType: ...
+    def kind(self) -> typing.Any:
+        r"""
+        Returns SAR's canonical `DependencyType` Python enum value
+        (looked up at runtime via `Py::import` to satisfy the Pyclass
+        Single Owner rule — shared2 never owns a `DependencyType` pyclass).
+        """
     @kind.setter
-    def kind(self, value: sbatch_options.DependencyType) -> None: ...
+    def kind(
+        self,
+        value: sbatch_options.slurm_async_runner._slurm_async_runner_core.entities.slurm.sbatch_options.DependencyType,
+    ) -> None: ...
     def __eq__(self, other: builtins.object, /) -> builtins.bool: ...
-    def __new__(cls, from_: JobId, kind: sbatch_options.DependencyType) -> JobEdge:
+    def __new__(
+        cls,
+        from_: JobId,
+        kind: sbatch_options.slurm_async_runner._slurm_async_runner_core.entities.slurm.sbatch_options.DependencyType,
+    ) -> JobEdge:
         r"""
         `from_` is spelled with a trailing underscore on the Python side
         because `from` is a reserved word.
+
+        `kind` accepts SAR's `DependencyType` Python enum (duck-typed via
+        `DependencyTypeBridge`). At runtime any object whose `str(...)` is
+        a recognised Slurm dependency keyword is accepted.
         """
     def __repr__(self) -> builtins.str: ...
 
@@ -77,10 +92,6 @@ class JobFlow:
     @created_at.setter
     def created_at(self, value: datetime.datetime) -> None: ...
     @property
-    def work_dir(self) -> pathlib.Path: ...
-    @work_dir.setter
-    def work_dir(self, value: builtins.str | os.PathLike | pathlib.Path) -> None: ...
-    @property
     def tags(self) -> builtins.dict[builtins.str, builtins.str]: ...
     @tags.setter
     def tags(self, value: typing.Mapping[builtins.str, builtins.str]) -> None: ...
@@ -93,7 +104,13 @@ class JobFlow:
         """
     @jobs.setter
     def jobs(self, value: typing.Mapping[builtins.str, Job]) -> None: ...
-    def __new__(cls, uuid: builtins.str, created_at: datetime.datetime, work_dir: builtins.str | os.PathLike | pathlib.Path, tags: typing.Mapping[builtins.str, builtins.str] = {}, jobs: typing.Mapping[builtins.str, Job] = {}) -> JobFlow:
+    def __new__(
+        cls,
+        uuid: builtins.str,
+        created_at: datetime.datetime,
+        tags: typing.Mapping[builtins.str, builtins.str] = {},
+        jobs: typing.Mapping[builtins.str, Job] = {},
+    ) -> JobFlow:
         r"""
         Build a `JobFlow`. `uuid` accepts the canonical hyphenated string form
         (e.g. `"01997cdc-…"`). To generate a fresh UUID v7, call
@@ -138,14 +155,48 @@ class JobSpec:
     @program.setter
     def program(self, value: Program) -> None: ...
     @property
-    def config(self) -> sbatch_options.SlurmJobConfig: ...
+    def config(self) -> typing.Any:
+        r"""
+        Get the SLURM config as a Python `SlurmJobConfig` instance.
+
+        **Limitation:** This getter only round-trips the `partition` field.
+        All other fields (`time_limit`, `resource_spec`, `log_stdout`,
+        `log_stderr`, `comment`, `job_name`, `mail_user`) are dropped — the
+        returned Python object will have those defaulted to SAR's `__new__`
+        defaults (`None` for most). The full Rust-side state is preserved
+        in `self.0.config`; the loss is only in the Python projection.
+
+        **Beware:** self-assignment (`spec.config = spec.config`) silently
+        destroys all dropped fields because the round-trip goes through this
+        getter. Mutate the underlying config in-place (or build a fresh
+        `SlurmJobConfig` with the desired fields) instead of read-modify-write.
+
+        Tracked in
+        <https://github.com/kkiyama117/gaussian_job_shared/issues/4>.
+        The fix is to expand the `cls.call1((..., ..., ...))` arg tuple to
+        include every field, once SAR's `SlurmJobConfig.__new__`
+        keyword-argument signature is stable.
+        """
     @config.setter
-    def config(self, value: sbatch_options.SlurmJobConfig) -> None: ...
+    def config(
+        self,
+        value: sbatch_options.slurm_async_runner._slurm_async_runner_core.entities.slurm.sbatch_options.SlurmJobConfig,
+    ) -> None: ...
     @property
     def body(self) -> builtins.str: ...
     @body.setter
     def body(self, value: builtins.str) -> None: ...
-    def __new__(cls, program: Program, config: sbatch_options.SlurmJobConfig, body: builtins.str) -> JobSpec: ...
+    def __new__(
+        cls,
+        program: Program,
+        config: sbatch_options.slurm_async_runner._slurm_async_runner_core.entities.slurm.sbatch_options.SlurmJobConfig,
+        body: builtins.str,
+    ) -> JobSpec:
+        r"""
+        `config` accepts SAR's `SlurmJobConfig` Python class (duck-typed
+        via `SlurmJobConfigBridge`). At runtime any object exposing the
+        expected attributes is accepted.
+        """
     def __repr__(self) -> builtins.str: ...
 
 @typing.final
@@ -161,4 +212,3 @@ class Program:
     def __new__(cls, value: builtins.str) -> Program: ...
     def __str__(self) -> builtins.str: ...
     def __repr__(self) -> builtins.str: ...
-

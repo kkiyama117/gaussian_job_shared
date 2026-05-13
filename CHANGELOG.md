@@ -5,6 +5,38 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed (BREAKING — `JobFlow.work_dir` removed)
+
+- **`JobFlow.work_dir: PathBuf` field removed.** The field duplicated
+  information that is fully derivable from `<root>/<uuid>/` via downstream
+  `PathResolver`, and created drift risk whenever the flow directory was
+  moved or renamed. Migrate Rust callers to derive the path on demand:
+
+  ```rust
+  // Before
+  let dir: &Path = &flow.work_dir;
+
+  // After
+  let dir: PathBuf = path_resolver.flow_dir(&flow.uuid);
+  ```
+
+  See the job-manager Phase 1 PR for the downstream migration shape.
+
+- **Python: `JobFlow(uuid=..., created_at=..., work_dir=..., tags=..., jobs=...)`
+  drops the `work_dir` keyword argument.** The `flow.work_dir` getter/setter
+  is also removed. Build a path from the flow's UUID via the downstream
+  `PathResolver` instead:
+
+  ```python
+  # Before
+  flow = JobFlow(uuid=..., created_at=..., work_dir="/tmp/flow", ...)
+  p = flow.work_dir
+
+  # After
+  flow = JobFlow(uuid=..., created_at=..., ...)
+  p = path_resolver.flow_dir(flow.uuid)
+  ```
+
 ### Changed (BREAKING — SLURM vocabulary extracted to `slurm_async_runner`)
 
 - **`entities::slurm::*` removed from this crate.** All SLURM vocabulary
