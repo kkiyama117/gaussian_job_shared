@@ -73,5 +73,6 @@ docs/_build/
 .python-version
 
 #remove lock because of pixi conflict
+Cargo.lock
 uv.lock
 .dmux/
